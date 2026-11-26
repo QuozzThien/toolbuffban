@@ -51,6 +51,19 @@ create table quozz_security.redemption_limits (
   window_started_at timestamptz not null,
   attempts integer not null check (attempts > 0)
 );
+-- Rollback restores legacy writers and removes live Auth-session bindings.
+-- After rollback, require a fresh Auth session before granting app access again.
+create table quozz_security.release_state (
+  id boolean primary key check (id),
+  app_auth_not_before timestamptz not null
+);
+insert into quozz_security.release_state
+  select true, statement_timestamp()
+  where exists (
+    select 1 from pg_catalog.pg_namespace
+    where nspname ~ '^quozz_security_archive_[0-9]+$'
+  );
+
 create table quozz_security.resources (
   slug text primary key,
   content jsonb not null
@@ -63,6 +76,7 @@ alter table quozz_security.vip_keys enable row level security;
 alter table quozz_security.entitlements enable row level security;
 alter table quozz_security.redemption_limits enable row level security;
 alter table quozz_security.resources enable row level security;
+alter table quozz_security.release_state enable row level security;
 revoke all on all tables in schema quozz_security from public, anon, authenticated;
 revoke all on all sequences in schema quozz_security from public, anon, authenticated;
 
@@ -133,6 +147,13 @@ declare
 begin
   if v_auth is null then
     raise exception using errcode = '42501', message = 'AUTH_SESSION_REQUIRED';
+  end if;
+  if exists (
+    select 1 from quozz_security.release_state r
+    join auth.sessions s on s.id = v_auth
+    where s.created_at is null or s.created_at < r.app_auth_not_before
+  ) then
+    raise exception using errcode = '42501', message = 'APP_SESSION_INACTIVE';
   end if;
   if p_device is not null and char_length(p_device) > 80 then
     raise exception using errcode = '22023', message = 'INVALID_DEVICE';
@@ -268,7 +289,7 @@ begin
     where id = 1 and updated_at is not distinct from p_expected_updated_at
     returning * into v_row;
   if not found then
-    raise exception using errcode = '40001', message = 'SYSTEM_SETTINGS_CHANGED';
+    raise exception using errcode = 'PT409', message = 'SYSTEM_SETTINGS_CHANGED';
   end if;
   insert into quozz_security.audit(actor_id,action,target_id,details)
     values (auth.uid(),'system.update',auth.uid(),jsonb_build_object('maintenance',p_maintenance));

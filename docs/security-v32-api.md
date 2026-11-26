@@ -38,7 +38,7 @@ Một thao tác Kick, Ban, Unban hoặc thu hồi khóa trả về `false` khi m
 | `42501` | `AUTH_SESSION_REQUIRED`, `APP_SESSION_INACTIVE` | Đăng nhập lại. |
 | `42501` | `PROFILE_ACCESS_DENIED`, `ADMIN_REQUIRED`, `ADMIN_TARGET_FORBIDDEN` | Hiển thị thông báo phù hợp và dừng thao tác. |
 | `42501` | `MAINTENANCE`, `VIP_REQUIRED` | Hiển thị trạng thái bảo trì hoặc luồng đổi VIP Key. |
-| `40001` | `SYSTEM_SETTINGS_CHANGED` | Đọc cài đặt mới trước khi lưu lại. |
+| `PT409` (HTTP 409) | `SYSTEM_SETTINGS_CHANGED` | Đọc cài đặt mới trước khi lưu lại. |
 | `22023` | `INVALID_DEVICE`, `INVALID_BAN_REQUEST`, `INVALID_SYSTEM_SETTINGS`, `INVALID_VIP_TERMS`, `INVALID_ADMIN_DATA_KIND` | Sửa payload. |
 | `P0002` | `RESOURCE_NOT_FOUND` | Hiển thị tài nguyên không tồn tại. |
 
@@ -55,7 +55,7 @@ Một thao tác Kick, Ban, Unban hoặc thu hồi khóa trả về `false` khi m
 1. Đồng bộ nhánh phát triển, đối chiếu checksum và xem diff. Sao lưu schema hiện tại, `public.profiles`, `public.sessions`, hai bảng cấu hình và dữ liệu private V3.2 nếu đã tồn tại.
 2. Trên **staging**, kiểm tra migration với PostgREST và Auth thật. Chạy luồng Admin, người dùng thường, token hết hạn, sign-out, hai trình duyệt đồng thời, rollback và chạy lại migration. Kiểm tra advisors sau DDL.
 3. Với phê duyệt triển khai, áp dụng migration trước rồi phát hành frontend V3.2 ngay sau đó trong cửa sổ triển khai. Giữa hai bước, Admin V3.1 vẫn đọc dữ liệu và chỉnh Appearance, nhưng nút Kick/Ban/Settings cũ không ghi được vì quyền PATCH đã được thu hồi. Admin V3.2 cần RPC V3.2 khi nạp dashboard.
-4. Rollback giữ profile, trạng thái banned/revoked và cấu hình hiện tại. SQL khôi phục RLS/grants V3.1, bỏ metadata ràng buộc phiên Auth cùng dữ liệu VIP/nhật ký private. Xuất dữ liệu V3.2 trước khi rollback. Rollback cũng khôi phục hạn chế bảo mật V3.1 đã tìm thấy. Khi dùng Supabase migration history, phối hợp rollback với bản điều chỉnh lịch sử migration trên đúng môi trường. Không chạy lại migration chỉ vì file vẫn có trong repo.
+4. Rollback giữ profile, trạng thái banned/revoked và cấu hình hiện tại. SQL khôi phục RLS/grants V3.1, lưu metadata ràng buộc phiên Auth và dữ liệu VIP/nhật ký private trong schema kho lưu trữ chỉ dành cho người vận hành đủ quyền. Xuất dữ liệu V3.2 trước khi rollback. Khi áp dụng lại migration, dữ liệu archive được giữ và cần kế hoạch riêng nếu muốn kích hoạt lại quyền VIP cũ. Thành viên phải đăng nhập Supabase Auth lại sau khi áp dụng lại migration để tạo phiên ứng dụng mới. Rollback cũng khôi phục hạn chế bảo mật V3.1 đã tìm thấy. Khi dùng Supabase migration history, phối hợp rollback với bản điều chỉnh lịch sử migration trên đúng môi trường. Không chạy lại migration chỉ vì file vẫn có trong repo.
 5. Khôi phục frontend bằng `git revert <commit-v3.2>`. Khôi phục cấu hình hoặc dữ liệu bị ảnh hưởng từ bản sao lưu khi cần. Ghi nhận thời điểm cắt chuyển để đối chiếu sự kiện quản trị.
 
 [Tài liệu phiên Supabase Auth](https://supabase.com/docs/guides/auth/sessions)

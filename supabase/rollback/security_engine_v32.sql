@@ -1,6 +1,7 @@
--- Back up quozz_security and public.sessions before executing this rollback.
--- V3.2-only security data is removed. Existing profiles and session revocation flags are retained.
+-- Proposed retention rollback. Review and verify a backup before use.
+-- V3.2 records stay in a restricted archive schema. This script restores V3.1 permissions.
 begin;
+set local lock_timeout = '5s';
 
 create or replace function public.is_admin() returns boolean
 language sql stable security definer set search_path = ''
@@ -21,9 +22,21 @@ drop function quozz_security.admin_data(text,bigint),quozz_security.redeem_key(t
   quozz_security.kick(uuid),quozz_security.get_resource(text),quozz_security.close_session(),
   quozz_security.heartbeat(),quozz_security.register_session(text),quozz_security.active_session(),
   quozz_security.lock_profile(uuid),quozz_security.require_admin(),quozz_security.auth_session();
-drop table quozz_security.audit,quozz_security.vip_keys,quozz_security.entitlements,
-  quozz_security.redemption_limits,quozz_security.resources;
-drop schema quozz_security;
+-- Preserve the V3.2 rows and the session bindings before removing the live schema.
+create table quozz_security.session_binding_archive as
+  select id as app_session_id, user_id, auth_session_id, expires_at
+  from public.sessions where auth_session_id is not null;
+alter table quozz_security.session_binding_archive enable row level security;
+revoke all on all tables in schema quozz_security from public, anon, authenticated, service_role;
+revoke all on all sequences in schema quozz_security from public, anon, authenticated, service_role;
+revoke all on schema quozz_security from public, anon, authenticated, service_role;
+do $archive$
+declare
+  archive_name text := 'quozz_security_archive_' || to_char(clock_timestamp() at time zone 'UTC','YYYYMMDDHH24MISSUS');
+begin
+  execute format('alter schema quozz_security rename to %I',archive_name);
+end
+$archive$;
 
 drop index public.quozz_sessions_user_recent_idx;
 alter table public.sessions drop column auth_session_id,drop column expires_at;
