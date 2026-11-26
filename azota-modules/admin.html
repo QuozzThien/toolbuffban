@@ -4,20 +4,21 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#080e17">
-<title>QUOZZ CONTROL CENTER V3</title>
+<title>QUOZZ CONTROL CENTER V3.2</title>
 <link rel="stylesheet" href="./admin.css">
 </head>
 <body>
 <div class="app-shell">
   <aside class="sidebar" aria-label="Điều hướng">
-    <div class="brand"><div class="brand-mark">Q</div><div><strong>QUOZZ <span>CONTROL</span></strong><small>PREMIUM ADMINISTRATION / V3</small></div></div>
+    <div class="brand"><div class="brand-mark">Q</div><div><strong>QUOZZ <span>CONTROL</span></strong><small>PREMIUM ADMINISTRATION / V3.2</small></div></div>
     <div class="nav-label">WORKSPACE</div>
     <nav id="desktop-nav" class="nav-links">
       <button class="nav active" data-page="overview"><span>▦</span> Tổng quan</button>
       <button class="nav" data-page="users"><span>♙</span> Người dùng</button>
       <button class="nav" data-page="sessions"><span>◎</span> Phiên truy cập</button>
       <button class="nav" data-page="design"><span>✧</span> Thiết kế giao diện</button>
-      <button class="nav" data-page="system"><span>⚙</span> Hệ thống</button>
+      <button class="nav" data-page="security"><span>◆</span> Bảo mật</button>
+      <button class="nav" data-page="system"><span>⚙</span> Cài đặt</button>
     </nav>
     <div class="sidebar-foot"><span class="dot"></span> SUPABASE CONNECTED <small>QUOZZ VIP SYSTEM</small></div>
   </aside>
@@ -36,8 +37,8 @@
         <div class="metrics"><article class="metric panel"><span>Tổng tài khoản</span><strong id="stat-users">0</strong><small>Registered members</small></article><article class="metric panel"><span>Đang online</span><strong id="stat-online" class="green">0</strong><small>Hoạt động trong 2 phút</small></article><article class="metric panel"><span>Tổng phiên</span><strong id="stat-sessions">0</strong><small>Managed sessions</small></article><article class="metric panel"><span>Bị khóa</span><strong id="stat-banned" class="rose">0</strong><small>Restricted accounts</small></article></div>
         <div class="columns"><article class="panel inset"><div class="panel-heading"><h3>Tình trạng vận hành</h3><span class="status-tag live">LIVE</span></div><div class="setting-line"><span>Database</span><b class="green">CONNECTED</b></div><div class="setting-line"><span>Chế độ bảo trì</span><b id="overview-maintenance">OFF</b></div><div class="setting-line"><span>Giao diện công khai</span><b id="overview-display">ON</b></div><button class="button subtle full" data-go="system">Quản lý hệ thống</button></article><article class="panel inset"><div class="panel-heading"><h3>Truy cập gần đây</h3><span class="muted">Phiên mới nhất</span></div><div id="recent-sessions" class="mini-feed muted">Chưa có dữ liệu phiên.</div><button class="button subtle full" data-go="sessions">Xem tất cả phiên</button></article></div>
       </section>
-      <section class="page" data-view="users"><div class="section-heading"><div><h2>Quản lý người dùng</h2><p>Khóa hoặc mở khóa tài khoản. Không hiển thị mật khẩu hay cookie.</p></div><button class="button subtle" data-refresh="users">↻ Làm mới</button></div><div class="panel table-panel"><div class="table-scroll"><table><thead><tr><th>Tài khoản</th><th>Trạng thái</th><th>Ngày tạo</th><th>Thao tác</th></tr></thead><tbody id="user-list"></tbody></table></div><p id="users-empty" class="empty">Chưa có hồ sơ nào.</p></div></section>
-      <section class="page" data-view="sessions"><div class="section-heading"><div><h2>Phiên truy cập</h2><p>Online được xác định theo heartbeat trong 2 phút gần nhất.</p></div><button class="button subtle" data-refresh="sessions">↻ Làm mới</button></div><div class="panel table-panel"><div class="table-scroll"><table><thead><tr><th>Phiên / Thiết bị</th><th>Tài khoản</th><th>Hoạt động cuối</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody id="session-list"></tbody></table></div><p id="sessions-empty" class="empty">Chưa ghi nhận phiên nào.</p></div><p class="hint">Kick chỉ thu hồi phiên trong hệ thống này. Khả năng ngắt công cụ phụ thuộc module kiểm tra phiên của người dùng.</p></section>
+      <section class="page" data-view="users"><div class="section-heading"><div><h2>Quản lý người dùng</h2><p>Khóa hoặc mở khóa tài khoản. Không hiển thị mật khẩu hay cookie.</p></div><button class="button subtle" data-refresh="users">↻ Làm mới</button></div><div class="panel table-panel"><div class="table-scroll"><table><thead><tr><th>Tài khoản</th><th>Trạng thái</th><th>Ngày tạo</th><th>Hoạt động cuối</th><th>VIP đến</th><th>Thao tác</th></tr></thead><tbody id="user-list"></tbody></table></div><p class="hint">Hiển thị tối đa 300 hồ sơ mới nhất.</p><p id="users-empty" class="empty">Chưa có hồ sơ nào.</p></div></section>
+      <section class="page" data-view="sessions"><div class="section-heading"><div><h2>Phiên truy cập</h2><p>Online được xác định theo heartbeat trong 2 phút gần nhất.</p></div><button class="button subtle" data-refresh="sessions">↻ Làm mới</button></div><div class="panel table-panel"><div class="table-scroll"><table><thead><tr><th>Phiên / Thiết bị</th><th>Tài khoản</th><th>Hoạt động cuối</th><th>Hết hạn phiên</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody id="session-list"></tbody></table></div><p class="hint">Hiển thị tối đa 300 phiên theo hoạt động gần đây.</p><p id="sessions-empty" class="empty">Chưa ghi nhận phiên nào.</p></div><p class="hint">Kick thu hồi phiên ứng dụng và chặn lần truy cập tài nguyên bảo vệ tiếp theo. Đăng nhập mới tạo phiên Auth mới. Ban chặn toàn bộ phiên của thành viên.</p></section>
       <section class="page" data-view="design">
         <div class="section-heading"><h2>Thiết kế giao diện</h2><a href="./demo.html">Mở demo</a></div>
         <div class="editor-layout">
@@ -63,10 +64,31 @@
           <div data-preview-stage></div>
         </dialog>
       </section>
-      <section class="page" data-view="system"><div class="section-heading"><div><h2>Cài đặt hệ thống</h2><p>Điều khiển bảo trì và thông báo chung.</p></div></div><form id="system-form" class="panel system-form"><label class="switch-line"><span><b>Chế độ bảo trì</b><small>Thông báo tạm dừng dịch vụ tới các module đã kết nối</small></span><input type="checkbox" name="maintenance"></label><label>Thông báo hệ thống<textarea name="notice" rows="4" maxlength="500" placeholder="Nội dung thông báo..."></textarea></label><button class="button primary" type="submit">Lưu cấu hình hệ thống</button><p class="hint">Chế độ bảo trì không tự vô hiệu hóa một bookmarklet JavaScript công khai nếu không có cơ chế kiểm tra quyền ở phía máy chủ.</p></form></section>
+      <section class="page" data-view="security">
+        <div class="section-heading"><h2>Bảo mật</h2><button id="security-refresh" type="button" class="button subtle">Làm mới bảo mật</button></div>
+        <form id="vip-key-form" class="panel system-form">
+          <h3>Tạo VIP Key</h3>
+          <div class="form-grid">
+            <label>Số ngày VIP<input name="duration" type="number" min="1" max="365" value="30" required></label>
+            <label>Hạn đổi khóa<input name="redeemBefore" type="datetime-local" required></label>
+          </div>
+          <button class="button primary" type="submit">Tạo VIP Key</button>
+          <label hidden>Khóa chỉ hiển thị tại đây sau khi tạo<input id="issued-vip-key" readonly autocomplete="off" spellcheck="false"></label>
+        </form>
+        <article class="panel table-panel security-table">
+          <h3>100 VIP Key gần nhất</h3>
+          <div class="table-scroll"><table><thead><tr><th>ID</th><th>Thời hạn VIP</th><th>Hạn đổi</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody id="vip-key-list"></tbody></table></div>
+        </article>
+        <article class="panel table-panel security-table">
+          <h3>Nhật ký bảo mật</h3>
+          <div class="table-scroll"><table><thead><tr><th>Thời gian</th><th>Hành động</th><th>Người thực hiện</th><th>Đối tượng</th><th>Chi tiết</th></tr></thead><tbody id="audit-list"></tbody></table></div>
+          <button id="audit-earlier" class="button subtle" type="button" hidden>Xem mục cũ hơn</button>
+        </article>
+      </section>
+      <section class="page" data-view="system"><div class="section-heading"><div><h2>Cài đặt hệ thống</h2><p>Cài đặt bảo trì và thông báo công khai.</p></div></div><form id="system-form" class="panel system-form"><label class="switch-line"><span><b>Chế độ bảo trì</b><small>Thông báo tạm dừng dịch vụ tới các module đã kết nối</small></span><input type="checkbox" name="maintenance"></label><label>Thông báo hệ thống<textarea name="notice" rows="4" maxlength="500" placeholder="Nội dung thông báo..."></textarea></label><button class="button primary" type="submit">Lưu cấu hình hệ thống</button><p class="hint">Chế độ bảo trì chặn tài nguyên thành viên ở backend. Trang demo giao diện và thông báo công khai vẫn truy cập được.</p></form></section>
     </div>
   </main>
-  <nav class="bottom-nav" aria-label="Điều hướng điện thoại"><button data-page="overview" class="active">▦<span>Tổng quan</span></button><button data-page="users">♙<span>Người dùng</span></button><button data-page="sessions">◎<span>Phiên</span></button><button data-page="design">✧<span>Giao diện</span></button><button data-page="system">⚙<span>Hệ thống</span></button></nav>
+  <nav class="bottom-nav" aria-label="Điều hướng điện thoại"><button data-page="overview" class="active">▦<span>Tổng quan</span></button><button data-page="users">♙<span>Người dùng</span></button><button data-page="sessions">◎<span>Phiên</span></button><button data-page="design">✧<span>Giao diện</span></button><button data-page="security">◆<span>Bảo mật</span></button><button data-page="system">⚙<span>Cài đặt</span></button></nav>
 </div>
 <script type="module" src="./admin.js"></script>
 </body>

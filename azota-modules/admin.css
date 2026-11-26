@@ -10,3 +10,9 @@
 #appearance-dialog form{position:relative;z-index:4}
 #appearance-dialog [data-preview-stage]{position:absolute;inset:0;overflow:hidden}
 #preview-surface{position:relative;min-height:320px;overflow:hidden}
+
+.security-table{margin-top:16px}
+.security-table h3,.security-table>button{margin:12px}
+.security-table td{max-width:30ch;overflow-wrap:anywhere}
+#vip-key-form [hidden],#audit-earlier[hidden]{display:none}
+@media(max-width:400px){.bottom-nav button{min-width:0;flex:1;padding-inline:0}}
