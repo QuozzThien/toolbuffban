@@ -38,7 +38,31 @@
       </section>
       <section class="page" data-view="users"><div class="section-heading"><div><h2>Quản lý người dùng</h2><p>Khóa hoặc mở khóa tài khoản. Không hiển thị mật khẩu hay cookie.</p></div><button class="button subtle" data-refresh="users">↻ Làm mới</button></div><div class="panel table-panel"><div class="table-scroll"><table><thead><tr><th>Tài khoản</th><th>Trạng thái</th><th>Ngày tạo</th><th>Thao tác</th></tr></thead><tbody id="user-list"></tbody></table></div><p id="users-empty" class="empty">Chưa có hồ sơ nào.</p></div></section>
       <section class="page" data-view="sessions"><div class="section-heading"><div><h2>Phiên truy cập</h2><p>Online được xác định theo heartbeat trong 2 phút gần nhất.</p></div><button class="button subtle" data-refresh="sessions">↻ Làm mới</button></div><div class="panel table-panel"><div class="table-scroll"><table><thead><tr><th>Phiên / Thiết bị</th><th>Tài khoản</th><th>Hoạt động cuối</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody id="session-list"></tbody></table></div><p id="sessions-empty" class="empty">Chưa ghi nhận phiên nào.</p></div><p class="hint">Kick chỉ thu hồi phiên trong hệ thống này. Khả năng ngắt công cụ phụ thuộc module kiểm tra phiên của người dùng.</p></section>
-      <section class="page" data-view="design"><div class="section-heading"><div><h2>Thiết kế giao diện</h2><p>Thay đổi giao diện công khai từ xa, không sửa v3.js.</p></div><span class="status-tag live">LIVE EDITOR</span></div><div class="editor-layout"><div class="panel preview-area"><div class="panel-heading"><h3>LIVE PREVIEW</h3><span class="muted">Mô phỏng trực tiếp</span></div><div id="preview-surface"><div class="preview-noise"></div><div id="preview-widget"><div class="preview-glow"></div><div id="preview-content"><div class="preview-brand"><span id="preview-logo" class="logo-box">Q</span><div><b id="preview-title">QUOZZ VIP SYSTEM</b><small id="preview-version">V5.0</small></div></div><div id="preview-marquee"><span id="preview-notice">WELCOME TO PREMIUM TOOL</span></div></div></div></div><p class="hint">Các hiệu ứng trên màn hình người dùng phụ thuộc trình duyệt và cấu hình đã phát hành.</p></div><form class="panel editor-form" id="design-form"><h3>TÙY CHỈNH</h3><div class="form-grid"><label>Tên thương hiệu<input name="title" maxlength="80" required></label><label>Phiên bản<input name="version" maxlength="40"></label></div><label>Thông báo công khai<input name="notice" maxlength="200"></label><label>Logo dạng ký tự<input name="logoText" maxlength="3" placeholder="Q"></label><div class="form-grid"><label>Màu chủ đạo<input name="color" type="color"></label><label>Vị trí<select name="position"><option value="bl">Dưới trái</option><option value="br">Dưới phải</option><option value="tl">Trên trái</option><option value="tr">Trên phải</option></select></label></div><div class="form-grid"><label>Chiều rộng <output id="width-out">240px</output><input type="range" name="width" min="150" max="400" step="10"></label><label>Độ trong suốt <output id="opacity-out">95%</output><input type="range" name="opacity" min="10" max="100"></label></div><div class="form-grid"><label>Cỡ chữ <output id="size-out">14px</output><input type="range" name="fontSize" min="11" max="24"></label><label>Tốc độ chữ chạy <output id="speed-out">10s</output><input type="range" name="marqueeSpeed" min="4" max="30"></label></div><div class="toggle-grid"><label><input type="checkbox" name="enabled"> Hiển thị</label><label><input type="checkbox" name="neon"> Neon</label><label><input type="checkbox" name="rgb"> RGB</label><label><input type="checkbox" name="matrix"> Matrix</label><label><input type="checkbox" name="glitch"> Glitch</label><label><input type="checkbox" name="marquee"> Chữ chạy</label></div><div class="form-actions"><button type="button" id="reset-design" class="button subtle">Khôi phục bản đã lưu</button><button type="submit" class="button primary">Phát hành giao diện</button></div></form></div></section>
+      <section class="page" data-view="design">
+        <div class="section-heading"><h2>Thiết kế giao diện</h2><a href="./demo.html">Mở demo</a></div>
+        <div class="editor-layout">
+          <div class="panel preview-area"><h3>Xem trước</h3><div id="preview-surface"></div></div>
+          <form class="panel editor-form" id="design-form">
+            <div class="appearance-tabs" aria-label="Lớp giao diện">
+              <button type="button" class="button subtle" data-section="intro">Intro Editor</button>
+              <button type="button" class="button subtle" data-section="menu">Menu Editor</button>
+              <button type="button" class="button subtle" data-section="brand">Brand Display</button>
+            </div>
+            <div class="form-grid" data-fields></div>
+            <div class="form-actions appearance-tabs">
+              <button type="button" class="button subtle" data-preview>Preview</button>
+              <button type="button" id="reset-design" class="button subtle">Reset</button>
+              <button type="submit" id="save-draft" class="button subtle">Save</button>
+              <button type="submit" class="button primary">Publish</button>
+            </div>
+            <p id="appearance-status" role="status"></p>
+          </form>
+        </div>
+        <dialog id="appearance-dialog">
+          <form method="dialog"><button class="button subtle">Đóng xem trước</button></form>
+          <div data-preview-stage></div>
+        </dialog>
+      </section>
       <section class="page" data-view="system"><div class="section-heading"><div><h2>Cài đặt hệ thống</h2><p>Điều khiển bảo trì và thông báo chung.</p></div></div><form id="system-form" class="panel system-form"><label class="switch-line"><span><b>Chế độ bảo trì</b><small>Thông báo tạm dừng dịch vụ tới các module đã kết nối</small></span><input type="checkbox" name="maintenance"></label><label>Thông báo hệ thống<textarea name="notice" rows="4" maxlength="500" placeholder="Nội dung thông báo..."></textarea></label><button class="button primary" type="submit">Lưu cấu hình hệ thống</button><p class="hint">Chế độ bảo trì không tự vô hiệu hóa một bookmarklet JavaScript công khai nếu không có cơ chế kiểm tra quyền ở phía máy chủ.</p></form></section>
     </div>
   </main>

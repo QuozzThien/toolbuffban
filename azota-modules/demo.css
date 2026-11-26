@@ -1,0 +1,6 @@
+*{box-sizing:border-box}
+body{min-height:100dvh;margin:0;padding:16px;background:#071217;color:#e1fbf6;font:1rem system-ui}
+header{max-width:960px;margin:auto}
+h1{font-size:clamp(1.25rem,5vw,2rem)}
+#demo-status{color:#a6c9c6}
+#demo-stage{position:relative;isolation:isolate;min-height:70dvh;max-width:960px;margin:auto;overflow:hidden;border:1px solid #234544;border-radius:18px;background:radial-gradient(ellipse at top,#13343b,#081418 70%)}
