@@ -1,7 +1,12 @@
+/* Azota Assistant v4.9 — chạy bằng bookmark (nạp từ GitHub/jsDelivr), không cần Tampermonkey.
+ * Lần đầu bấm bookmark: nạp script → màn mở đầu → menu. Bấm lại: mở/đóng menu. */
+
 (function () {
   'use strict';
+  if (!/(^|\.)azota\.vn$/i.test(location.hostname)) { alert('Azota Assistant chỉ chạy trên azota.vn'); return; }
   if (window.__AZA4_LOADED__) { window.dispatchEvent(new CustomEvent('aza-menu')); return; }
   window.__AZA4_LOADED__ = true;
+  const SELF_SRC = (document.currentScript && document.currentScript.src) || '';
 
   /* =====================================================================
    * PHẦN 1 — TIỆN ÍCH CHUNG & BANK ENGINE
@@ -1151,8 +1156,12 @@
       h('div', 'aza-note', 'Dòng chữ này hiện to ở màn mở đầu và chạy ngang trên đầu menu.'),
       txtIn, sw, r2(themeCtl.splash, themeCtl.rain),
       btn('▶ XEM THỬ MÀN MỞ ĐẦU', () => { ui.classList.remove('open'); showSplash(); }, 'go'),
-      btn('COPY BOOKMARK MỞ MENU', () => toClip("javascript:(function(){window.dispatchEvent(new CustomEvent('aza-menu'))})();", 'Đã copy bookmark MENU.')),
-      h('div', 'aza-note', 'Chạy bookmark: hiện màn mở đầu rồi mở menu; chạy lại để đóng menu.'));
+      btn('COPY BOOKMARK (NẠP + MỞ MENU)', () => {
+        const src = SELF_SRC || 'https://cdn.jsdelivr.net/gh/TEN/REPO@main/azota-assistant.js';
+        toClip("javascript:(function(){if(window.__AZA4_LOADED__){window.dispatchEvent(new CustomEvent('aza-menu'));return}var s=document.createElement('script');s.src='" + src + "';document.head.appendChild(s)})();",
+          SELF_SRC ? 'Đã copy bookmark.' : 'Đã copy bookmark — nhớ thay TEN/REPO bằng địa chỉ file của bạn.');
+      }),
+      h('div', 'aza-note', 'Bấm bookmark lần đầu: nạp script + màn mở đầu + menu. Bấm lại: đóng/mở menu.'));
 
     // sự kiện chung
     bBack.onclick = back;
@@ -1215,4 +1224,6 @@
   });
 
   start();
+  // Nạp bằng bookmark thì mở luôn: màn mở đầu rồi menu
+  if (THEME.splash) showSplash(); else ui.classList.add('open');
 })();
