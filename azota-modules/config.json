@@ -1,7 +1,17 @@
 {
-  "enabled": true,
-  "title": "QUOZZ VIP SYSTEM",
+  "title": "TOOL BY QUOZTHIEN",
   "version": "VIP PREMIUM",
   "notice": "WELCOME TO PREMIUM TOOL",
-  "color": "#00ff9c"
+  "color": "#00ff9c",
+  "position": "bl",
+  "logo": "TOOL PREMIUM",
+  "width": 180,
+  "fontSize": 14,
+  "opacity": 1,
+  "enabled": true,
+  "neon": true,
+  "rgb": true,
+  "matrix": true,
+  "glitch": true,
+  "marquee": true
 }
