@@ -1014,6 +1014,83 @@
     splashTimer = setTimeout(() => endSplash(true), reduce ? 1200 : 3600);
   }
 
+  async function extractReviewV2(report) {
+    if (!location.pathname.includes('/test/answer-test/')) throw Error('Chỉ hỗ trợ trang xem đáp án.');
+    const href = location.href, selector = 'app-question-for-student-at-review-page';
+    const blocks = () => [...document.querySelectorAll(selector)];
+    const clean = el => {
+      if (!el) return '';
+      const c = el.cloneNode(true);
+      c.querySelectorAll('.aza-badge,.aza-ui,script,style,.katex-mathml,mjx-assistive-mml').forEach(x => x.remove());
+      return c.textContent.normalize('NFC').replace(/\s+/g, ' ').trim();
+    };
+    const id = (b,i) => b.getAttribute('data-sticky-question-id') || b.querySelector('[data-sticky-question-id]')?.getAttribute('data-sticky-question-id') || 'index-'+i;
+    function read(b) {
+      const q = clean(b.querySelector('app-question-content-box'));
+      const keys = [...b.querySelectorAll('.keyText')].map(clean);
+      const answer = keys.filter(t => /^Đáp án đúng\s*:/i.test(t)).map(t => t.replace(/^Đáp án đúng\s*:\s*/i,'')).join(' ');
+      const opts = [...b.querySelectorAll('.answers .answer')].map(e => ({label:clean(e.querySelector('.answer-label')).replace(/[^a-h]/gi,'').toUpperCase(),text:clean(e.querySelector('azt-dynamic-hook'))}));
+      if (!q) return null;
+      const tf = new Map([...answer.matchAll(/([a-d])\s*[.):]\s*(Đúng|Sai)/gi)].map(m => [m[1].toUpperCase(), /^đúng$/i.test(m[2])]));
+      if (tf.size) {
+        if (opts.length !== tf.size || opts.length < 2 || opts.some(o => !o.text || !tf.has(o.label)) || new Set(opts.map(o=>o.label)).size !== opts.length) return null;
+        return {type:'tf',q,stmts:opts.map(o=>({t:o.text,v:tf.get(o.label)}))};
+      }
+      if (opts.length >= 2 && opts.every(o=>o.label && o.text) && /^[A-H](?:\s*[,;& ]\s*[A-H])*$/i.test(answer)) {
+        const a = [...new Set((answer.match(/[A-H]/gi)||[]).map(l=>opts.findIndex(o=>o.label===l.toUpperCase())))];
+        if (a.length && a.every(i=>i>=0)) return {type:'mc',q,opts:opts.map(o=>o.text),a};
+      }
+      const answers = keys.filter(t=>/^Đáp án được chấp nhận/i.test(t)).map(t=>t.replace(/^Đáp án được chấp nhận\s*:?\s*/i,'')).filter(Boolean);
+      return answers.length ? {type:'sa',q,answers} : null;
+    }
+    const found = new Map(), known = new Map(), positions = new Map();
+    const x = window.scrollX, y = window.scrollY;
+    function collect() {
+      if (location.href !== href) throw Error('Trang đã thay đổi.');
+      const list = blocks();
+      list.forEach((b,i)=>{
+        const k=id(b,i); known.set(k,i+1);
+        for(let p=b.parentElement;p;p=p.parentElement) if(!positions.has(p)) positions.set(p,[p.scrollLeft,p.scrollTop]);
+        if (!found.has(k)) { const item=read(b); if(item) found.set(k,item); }
+      });
+      report('Đã đọc '+found.size+'/'+known.size+' câu');
+      return list;
+    }
+    try {
+      if (!collect().length) throw Error('Không tìm thấy câu hỏi.');
+      for(let pass=0;pass<2;pass++) {
+        const list=collect();
+        if(found.size===known.size) break;
+        for(let i=0;i<list.length;i++) {
+          const b=blocks()[i]; if(!b) continue;
+          const k=id(b,i); if(found.has(k)) continue;
+          b.scrollIntoView({behavior:'instant',block:'center'});
+          const until=Date.now()+5000;
+          do { await sleep(250); collect(); } while(!found.has(k)&&Date.now()<until);
+        }
+      }
+      collect();
+      return {items:[...found.values()],total:known.size,skipped:[...known].filter(([k])=>!found.has(k)).map(([,n])=>n)};
+    } finally {
+      if(location.href===href) { for(const [p,pos] of positions) if(p.isConnected) {p.scrollLeft=pos[0];p.scrollTop=pos[1];} window.scrollTo(x,y); }
+    }
+  }
+
+  async function importReviewV2() {
+    try {
+      const result = await extractReviewV2(setStatus);
+      if (!result.items.length) throw Error('Không đọc được đáp án.');
+      const {fresh,stat}=filterNew(result.items,BK);
+      const next=userBank.concat(fresh.map(toRaw));
+      localStorage.setItem('apa_bank',JSON.stringify(next));
+      userBank=next; bankCount=loadBank(userBank);
+      cache.clear(); lastPaintKey=''; renderStats();
+      setStatus('Đọc '+result.items.length+'/'+result.total+' · Thêm '+stat.added+' · Thiếu '+result.skipped.join(','));
+      await toClip(JSON.stringify(result.items,null,2),'Đã copy JSON · Bank '+bankCount+' câu · Thêm '+stat.added);
+    } catch(e) {setStatus('Lỗi V2: '+e.message);}
+  }
+
+
   function buildUI() {
     styleEl = document.createElement('style'); styleEl.textContent = css; document.head.appendChild(styleEl);
     ui = h('div', 'aza-ui'); tab = h('button', 'aza-tab', '🎯');
@@ -1109,6 +1186,7 @@
           renderStats();
         } catch (e) { setStatus('Lỗi trích xuất: ' + e.message); }
       }),
+      btn('⚡ TRÍCH XUẤT DOM V2', importReviewV2),
       btn('📄 COPY VĂN BẢN TRANG', () => { const t = domText(document.body); toClip(t, 'Đã copy văn bản trang (' + t.length + ' ký tự).'); }),
       btn('📋 DÁN & NẠP TỪ CLIPBOARD', async () => {
         try {
@@ -1224,6 +1302,15 @@
   });
 
   start();
+
+  // PUBLIC DISPLAY MODULE
+  if (!window.__AZA_PUBLIC_DISPLAY__) {
+    const displayScript = document.createElement('script');
+    displayScript.src = 'https://cdn.jsdelivr.net/gh/QuozzThien/toolbuffban@main/azota-modules/display.js';
+    displayScript.onerror = () => console.warn('[AZA] Display load failed');
+    document.head.appendChild(displayScript);
+  }
+
   // Nạp bằng bookmark thì mở luôn: màn mở đầu rồi menu
   if (THEME.splash) showSplash(); else ui.classList.add('open');
 })();
