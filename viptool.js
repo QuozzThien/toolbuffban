@@ -545,7 +545,7 @@
   }
 
   // Chế độ luyện tập = có nút Kiểm tra / Thử lại / Câu tiếp
-  const isPractice = () =>
+  const isPractice = () => true;
     !!document.querySelector('[azt-track-service^="take-training"]') &&
     (!!findBtn(/^(Kiểm tra|Thử lại|Câu tiếp|Tiếp theo|Nộp bài|Hoàn thành|Kết thúc|Nộp|Xem kết quả)$/i) || !!primaryBtn());
 
@@ -566,7 +566,7 @@
   async function pick(btn, row) {
     if (isSel(btn)) return true;            // đã chọn thì không bấm lại (tránh bỏ chọn)
     btn.click();
-    await sleep(400);
+    await sleep(200);
     if (isSel(btn)) return true;
     if (row) { row.click(); await sleep(400); }
     return isSel(btn);
@@ -632,8 +632,7 @@
 
   // Nút xanh chính ở thanh dưới (Kiểm tra / Câu tiếp / Xem kết quả...), nút thấp nhất màn hình
   function primaryBtn() {
-    // bỏ nút nhỏ btn-sm (nút "Nộp bài" ở thanh trên) để không bấm nhầm giữa chừng
-    const c = [...document.querySelectorAll('button.btn-primary:not(.btn-sm)')]
+    const c = [...document.querySelectorAll('button.btn-primary')]
       .filter(b => !inUi(b) && b.getBoundingClientRect().height > 0)
       .map(b => ({ b, top: b.getBoundingClientRect().top }));
     c.sort((x, y) => y.top - x.top);
@@ -664,7 +663,7 @@
       if (check) check.click();
       const r = await waitFor(() => {
         if (findBtn(RETRY_RE)) return 'wrong';
-        if (nextBtn()) return 'ok';   // nút chính đã đổi chữ khỏi "Kiểm tra"
+        if (nextBtn() || (prog.cur >= prog.total && findBtn(SUBMIT_RE))) return 'ok';
         return null;
       }, 8000 + attempt * 4000);
       if (r) return r;
@@ -679,7 +678,7 @@
       const nb = nextBtn();
       if (nb) nb.click();
       const p = await waitFor(() => { const g = getProgress(); return g && g.cur !== prog.cur ? g : null; }, 6000 + attempt * 4000);
-      if (p) { await sleep(500); return true; }
+      if (p) { await sleep(150); return true; }
       logAuto(`Câu ${prog.cur}: mạng chậm, bấm Câu tiếp lại (${attempt})`);
     }
     return false;
@@ -687,10 +686,7 @@
 
   // Nộp bài sau câu cuối: chờ nút xuất hiện (tối đa 15 giây), bấm, xác nhận nếu có hộp thoại
   async function submitAll() {
-    const sb = await waitFor(() => {
-      const p = primaryBtn();
-      return (p && SUBMIT_RE.test(btnText(p))) ? p : (findBtn(SUBMIT_RE) || nextBtn());
-    }, 15000);
+    const sb = await waitFor(() => findBtn(SUBMIT_RE) || nextBtn(), 15000);
     if (!sb) return false;
     logAuto('Bấm "' + btnText(sb) + '"');
     sb.click();
@@ -753,10 +749,10 @@
           const el = locate(norm(s.t), S.nodes, m.st.filter(x => x !== s).map(x => norm(x.t)));
           const b = el && tfRowBtn(el, s.v);
           if (!b) { ok = false; break; }
-          if (!isSel(b)) { b.click(); await sleep(rnd(400, 800)); }
+          if (!isSel(b)) { b.click(); await sleep(rnd(200, 400)); }
         }
         if (!ok) { if (await bail('không định vị được nút Đúng/Sai câu ' + prog.cur)) continue; break; }
-        await sleep(500);
+        await sleep(150);
       } else {
         lastErr = `Lỗi: Chưa hỗ trợ loại ${m.type}`; logAuto(lastErr); end = 'perm'; break;
       }
@@ -799,7 +795,7 @@
     logAuto('Tự chạy: đã vào bài luyện tập');
     autoOn = true; renderStats();
     autoLoop();
-  }, 2000);
+  }, 1000);
 
   /* =====================================================================
    * PHẦN 4 — GIAO DIỆN UI
