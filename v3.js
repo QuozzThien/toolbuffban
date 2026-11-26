@@ -825,7 +825,7 @@
   const LOCK = {
     // Dán mã băm SHA-256 (tạo trong menu: Khoá → Tạo mã băm) vào đây.
     // Để trống = chưa đặt khoá, script mở sẵn. Có mã băm = script ở trạng thái "ngủ" cho tới khi chạy bookmark CHÌA.
-    KEY_HASH: '',
+    KEY_HASH: 'cc1175bf2b3f9bcadaa4e789d26ddb01292b1ffc349e4f3b6c204688935dea7a',
     SALT: 'azota-assistant/v1',
     REMEMBER_TAB: true      // nhớ trạng thái đã mở khoá trong tab này (mất khi đóng tab)
   };
