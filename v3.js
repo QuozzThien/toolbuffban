@@ -346,7 +346,7 @@
    * PHẦN 2 — TÔ ĐÁP ÁN
    * ===================================================================== */
   const MATH_SKIP = '.katex-mathml,annotation,mjx-assistive-mml,.MJX_Assistive_MathML';
-  const inUi = el => !!(el && el.closest && el.closest('.aza-ui,.aza-badge'));
+  const inUi = el => !!(el && el.closest && el.closest('.aza-ui,.aza-badge,.aza-splash'));
   function textOf(el) {
     let s = '';
     const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
@@ -488,7 +488,7 @@
     while ((n = w.nextNode())) {
       const v = n.nodeValue; if (!v || !v.trim() || TIMER_NODE.test(v)) continue;
       const p = n.parentElement; if (!p || /^(SCRIPT|STYLE|NOSCRIPT|TEXTAREA)$/.test(p.tagName)) continue;
-      let g = ok.get(p); if (g === undefined) { g = !p.closest('.aza-badge,.aza-ui,' + MATH_SKIP); ok.set(p, g); }
+      let g = ok.get(p); if (g === undefined) { g = !p.closest('.aza-badge,.aza-ui,.aza-splash,' + MATH_SKIP); ok.set(p, g); }
       if (!g) continue;
       nodes.push({ n, nt: norm(v) }); text += v.trim() + ' ';
     }
@@ -820,80 +820,114 @@
 
 
   /* =====================================================================
-   * PHẦN 4 — GIAO DIỆN (menu đi sâu từng tầng) + KHOÁ / CHÌA
+   * PHẦN 4 — GIAO DIỆN HACKER (menu gọn, đi sâu) + MÀN MỞ ĐẦU
    * ===================================================================== */
-  const LOCK = {
-    // Dán mã băm SHA-256 (tạo trong menu: Khoá → Tạo mã băm) vào đây.
-    // Để trống = chưa đặt khoá, script mở sẵn. Có mã băm = script ở trạng thái "ngủ" cho tới khi chạy bookmark CHÌA.
-    KEY_HASH: 'cc1175bf2b3f9bcadaa4e789d26ddb01292b1ffc349e4f3b6c204688935dea7a',
-    SALT: 'azota-assistant/v1',
-    REMEMBER_TAB: true      // nhớ trạng thái đã mở khoá trong tab này (mất khi đóng tab)
-  };
-
   let started = false;
-  let ui = null, tab = null, titleEl = null, bBack = null, status = null, status2 = null, res = null, stats = null, dInfo = null, autoLog = null;
-  let bOn = null, bAutoMode = null, styleEl = null, obs = null, watchId = 0, onScroll = null, onResize = null;
-  const pagesMap = {}, homeSubs = {}, speedInputs = {};
+  let ui = null, tab = null, titleEl = null, bBack = null, status = null, res = null, stats = null, dInfo = null, autoLog = null;
+  let bOn = null, bAutoMode = null, marq = null, marqSpan = null, styleEl = null, obs = null, watchId = 0;
+  const pagesMap = {}, homeSubs = {}, speedInputs = {}, themeCtl = {};
   let stack = ['home'];
   const obsTake = () => { if (obs) obs.takeRecords(); };
 
+  // ---- Giao diện: chữ hiển thị, màu, hiệu ứng (chỉnh trong menu → Giao diện) ----
+  const COLORS = [['Xanh lá', '#00ff9c'], ['Lam', '#00e5ff'], ['Hồng', '#ff2bd6'], ['Hổ phách', '#ffb000'], ['Đỏ', '#ff3b3b']];
+  const THEME_DEF = { text: 'ACCESS GRANTED', color: '#00ff9c', splash: true, rain: true };
+  const THEME = Object.assign({}, THEME_DEF, store.get('apa_theme', {}));
+  const saveTheme = () => { store.set('apa_theme', THEME); applyTheme(); };
+
   const css = `
-.aza-ui{position:fixed;right:0;z-index:2147483647;display:flex;align-items:flex-start;font:14px/1.4 system-ui,sans-serif;touch-action:none}
-.aza-ui button{font-family:inherit;cursor:pointer}
-.aza-tab{width:36px;height:36px;border:0;border-radius:10px 0 0 10px;background:#546e7a;color:#fff;font-size:16px;opacity:.92;padding:0}
-.aza-tab.on{background:#2e7d32}.aza-tab.auto{background:#ff8f00}
-.aza-body{display:none;flex-direction:column;width:min(94vw,360px);height:min(80vh,560px);background:#fff;color:#1b1f2a;border:1px solid #cfd4dc;border-radius:12px 0 0 12px;box-shadow:0 2px 12px rgba(0,0,0,.3);overflow:hidden}
+.aza-ui{--aza-c:#00ff9c;position:fixed;right:0;z-index:2147483647;display:flex;align-items:flex-start;font:12px/1.35 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;touch-action:none}
+.aza-ui button,.aza-ui input{font-family:inherit}
+.aza-ui button{cursor:pointer}
+.aza-tab{width:30px;height:30px;border:1px solid var(--aza-c);border-right:0;border-radius:8px 0 0 8px;background:#02130b;color:var(--aza-c);font-size:14px;padding:0;box-shadow:0 0 8px var(--aza-c);text-shadow:0 0 6px var(--aza-c)}
+.aza-tab.on{background:#04281a}.aza-tab.auto{animation:azaPulse 1s ease-in-out infinite}
+.aza-body{display:none;flex-direction:column;position:relative;width:min(86vw,290px);height:min(56vh,330px);background:rgba(2,10,6,.95);color:var(--aza-c);border:1px solid var(--aza-c);border-radius:10px 0 0 10px;box-shadow:0 0 14px var(--aza-c),inset 0 0 18px rgba(0,255,156,.07);overflow:hidden}
+.aza-body::after{content:"";position:absolute;left:0;top:0;right:0;bottom:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(255,255,255,.035) 0,rgba(255,255,255,.035) 1px,transparent 1px,transparent 3px)}
 .aza-ui.open .aza-body{display:flex}
-.aza-head{display:flex;align-items:center;gap:8px;padding:8px 10px;background:#f4f6fa;border-bottom:1px solid #e3e6ee;flex:0 0 auto}
-.aza-title{flex:1;font-weight:700;font-size:15px}
-.aza-back,.aza-close{width:34px;height:34px;border:1px solid #cfd4dc;background:#fff;border-radius:8px;font-size:18px;line-height:1;padding:0;color:#1b1f2a}
+.aza-head{display:flex;align-items:center;gap:6px;padding:5px 7px;border-bottom:1px solid var(--aza-c);flex:0 0 auto}
+.aza-title{flex:1;font-weight:700;letter-spacing:.5px;text-shadow:0 0 6px var(--aza-c);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.aza-title::after{content:"\\25AE";margin-left:2px;animation:azaBlink 1s steps(1) infinite}
+.aza-back,.aza-close{width:24px;height:24px;border:1px solid var(--aza-c);background:transparent;color:var(--aza-c);border-radius:4px;font-size:13px;line-height:1;padding:0}
+.aza-marq{overflow:hidden;white-space:nowrap;height:16px;line-height:16px;font-size:10px;border-bottom:1px solid rgba(255,255,255,.08);flex:0 0 auto;text-shadow:0 0 5px var(--aza-c)}
+.aza-marq span{display:inline-block;padding-left:100%;animation:azaMarq 12s linear infinite}
 .aza-stage{position:relative;flex:1 1 auto;overflow:hidden}
-.aza-page{position:absolute;top:0;left:0;right:0;bottom:0;overflow-y:auto;padding:10px;background:#fff;transform:translateX(100%);visibility:hidden;transition:transform .22s ease,visibility .22s;touch-action:pan-y}
+.aza-page{position:absolute;top:0;left:0;right:0;bottom:0;overflow-y:auto;padding:7px;transform:translateX(100%);visibility:hidden;transition:transform .2s ease,visibility .2s;touch-action:pan-y}
 .aza-page.cur{transform:none;visibility:visible}
-.aza-page.under{transform:translateX(-28%);visibility:hidden}
-.aza-item{display:flex;align-items:center;gap:8px;width:100%;padding:12px 10px;margin-bottom:8px;border:1px solid #dfe3ea;background:#f7f8fb;border-radius:10px;text-align:left;font-size:15px;color:#1b1f2a}
-.aza-il{flex:1;font-weight:600}.aza-is{color:#667085;font-size:12px}.aza-ic{color:#98a2b3;font-size:20px}
-.aza-btn{display:block;width:100%;padding:10px;margin-bottom:8px;border:1px solid #cfd4dc;background:#f3f4f8;border-radius:8px;font-size:14px;color:#1b1f2a;box-sizing:border-box}
-.aza-r2{display:flex;gap:8px}.aza-r2 .aza-btn{flex:1}
-.aza-card{background:#f3f4f8;border-radius:10px;padding:8px 10px;margin-bottom:10px;font-size:13px;color:#344054;white-space:pre-wrap}
-.aza-note{color:#667085;font-size:12px;margin:2px 0 8px}
-.aza-f{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;font-size:13px}
-.aza-f input{width:96px;padding:8px;border:1px solid #cfd4dc;border-radius:8px;font-size:15px;box-sizing:border-box;background:#fff;color:#1b1f2a}
-.aza-in{width:100%;padding:8px;border:1px solid #cfd4dc;border-radius:8px;font-size:14px;box-sizing:border-box;margin-bottom:8px;background:#fff;color:#1b1f2a}
-.aza-res{font-size:12px;max-height:50vh;overflow:auto;background:#f3f4f8;border-radius:8px;padding:6px 8px;margin:4px 0;display:none;white-space:pre-wrap}
+.aza-page.under{transform:translateX(-25%);visibility:hidden}
+.aza-foot{flex:0 0 auto;border-top:1px solid var(--aza-c);padding:3px 7px;font-size:10px;min-height:14px;max-height:30px;overflow:hidden;opacity:.9}
+.aza-item{display:flex;align-items:center;gap:6px;width:100%;padding:7px 8px;margin-bottom:5px;border:1px solid var(--aza-c);background:rgba(0,0,0,.35);color:var(--aza-c);border-radius:5px;text-align:left;font-size:12px;text-shadow:0 0 5px var(--aza-c)}
+.aza-il{flex:1;font-weight:700}.aza-is{opacity:.7;font-size:10px}.aza-ic{opacity:.8}
+.aza-btn{display:block;width:100%;padding:6px;margin-bottom:5px;border:1px solid var(--aza-c);background:rgba(0,0,0,.35);color:var(--aza-c);border-radius:5px;font-size:11px;box-sizing:border-box;text-shadow:0 0 4px var(--aza-c)}
+.aza-btn.go{color:#00ff9c;border-color:#00ff9c}.aza-btn.no{color:#ff3b3b;border-color:#ff3b3b}
+.aza-btn.sel{background:var(--aza-c);color:#000;text-shadow:none}
+.aza-r2{display:flex;gap:5px}.aza-r2 .aza-btn{flex:1}
+.aza-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px}.aza-grid .aza-btn{margin-bottom:0}
+.aza-card{border:1px dashed var(--aza-c);border-radius:5px;padding:5px 7px;margin-bottom:6px;font-size:11px;white-space:pre-wrap}
+.aza-note{opacity:.7;font-size:10px;margin:2px 0 6px}
+.aza-f{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:5px;font-size:11px}
+.aza-f input{width:70px;padding:4px 5px;border:1px solid var(--aza-c);border-radius:4px;font-size:12px;box-sizing:border-box;background:#000;color:var(--aza-c);text-align:right}
+.aza-in{width:100%;padding:6px;border:1px solid var(--aza-c);border-radius:5px;font-size:12px;box-sizing:border-box;margin-bottom:6px;background:#000;color:var(--aza-c)}
+.aza-sw{display:flex;gap:6px;margin-bottom:6px}
+.aza-sw button{flex:1;height:24px;border:2px solid transparent;border-radius:12px;padding:0}
+.aza-sw button.sel{border-color:#fff;box-shadow:0 0 8px currentColor}
+.aza-res{font-size:10px;max-height:90px;overflow:auto;border:1px solid rgba(255,255,255,.12);border-radius:5px;padding:4px 6px;margin:0 0 6px;display:none;white-space:pre-wrap}
 .aza-ok{outline:3px solid #2e7d32!important;background:rgba(46,125,50,.18)!important}
 .aza-t{outline:2px solid #2e7d32!important}.aza-f2{outline:2px solid #c62828!important}
 .aza-badge{display:inline-block;margin-left:6px;padding:0 6px;border-radius:8px;font-size:12px;font-weight:700;color:#fff;pointer-events:none;vertical-align:middle}
 .aza-b-ok{background:#2e7d32}.aza-b-no{background:#c62828}.aza-b-un{background:#78909c}
-.aza-auto-log{font-size:12px;color:#16a34a;margin:6px 0;min-height:16px;font-weight:700}
+.aza-auto-log{font-size:11px;margin:4px 0;min-height:14px;font-weight:700}
+.aza-splash{--aza-c:#00ff9c;position:fixed;left:0;top:0;right:0;bottom:0;z-index:2147483647;background:#000;color:var(--aza-c);font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;display:flex;align-items:center;justify-content:center;opacity:1;transition:opacity .35s;overflow:hidden}
+.aza-splash.out{opacity:0}
+.aza-splash canvas{position:absolute;left:0;top:0;width:100%;height:100%;opacity:.55}
+.aza-sbox{position:relative;max-width:92vw;padding:16px 18px;background:rgba(0,0,0,.74);border:1px solid var(--aza-c);box-shadow:0 0 22px var(--aza-c)}
+.aza-slog{margin:0 0 10px;white-space:pre-wrap;min-height:9em;font:inherit;text-shadow:0 0 6px var(--aza-c)}
+.aza-sbig{position:relative;font-weight:800;font-size:clamp(20px,8vw,40px);letter-spacing:3px;text-align:center;text-transform:uppercase;text-shadow:0 0 12px var(--aza-c);opacity:0;transform:scale(.92);transition:opacity .3s,transform .3s;word-break:break-word}
+.aza-sbig.show{opacity:1;transform:none;animation:azaGlitch 1.1s infinite}
+.aza-sbig::before,.aza-sbig::after{content:attr(data-t);position:absolute;left:0;top:0;width:100%;overflow:hidden}
+.aza-sbig::before{color:#ff2bd6;clip-path:inset(0 0 55% 0);animation:azaG1 1.3s infinite steps(2)}
+.aza-sbig::after{color:#00e5ff;clip-path:inset(55% 0 0 0);animation:azaG2 1.7s infinite steps(2)}
+.aza-ssub{margin-top:10px;text-align:center;opacity:.6;font-size:11px;animation:azaBlink 1.2s steps(1) infinite}
+@keyframes azaBlink{50%{opacity:0}}
+@keyframes azaPulse{50%{box-shadow:0 0 16px var(--aza-c)}}
+@keyframes azaMarq{from{transform:translateX(0)}to{transform:translateX(-100%)}}
+@keyframes azaGlitch{0%,100%{transform:none}92%{transform:translate(1px,-1px)}94%{transform:translate(-2px,1px)}96%{transform:none}}
+@keyframes azaG1{0%{transform:translate(-2px,0)}50%{transform:translate(2px,-1px)}100%{transform:translate(-1px,1px)}}
+@keyframes azaG2{0%{transform:translate(2px,0)}50%{transform:translate(-2px,1px)}100%{transform:translate(1px,-1px)}}
+@media (prefers-reduced-motion:reduce){.aza-splash *,.aza-ui *{animation:none!important;transition:none!important}}
 `;
 
   const h = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt) e.textContent = txt; return e; };
   const r2 = (...c) => { const r = h('div', 'aza-r2'); r.append(...c); return r; };
-  const btn = (txt, fn) => { const b = h('button', 'aza-btn', txt); if (fn) b.onclick = fn; return b; };
+  const btn = (txt, fn, cls) => { const b = h('button', 'aza-btn' + (cls ? ' ' + cls : ''), txt); if (fn) b.onclick = fn; return b; };
 
-  function setStatus(t) { if (status) status.textContent = t; if (status2) status2.textContent = t; }
+  function setStatus(t) { if (status) status.textContent = t; }
   function setResults(lines) { if (!res) return; res.style.display = lines.length ? 'block' : 'none'; res.textContent = lines.join('\n'); }
   function logAuto(t) {
     console.log('[AzaAuto]', t);
     if (!autoLog) return;
     autoLog.textContent = t;
-    autoLog.style.color = (t.includes('Lỗi') || t.includes('Kẹt')) ? '#dc2626' : '#16a34a';
+    autoLog.style.color = (t.includes('Lỗi') || t.includes('Kẹt')) ? '#ff3b3b' : '#00ff9c';
   }
   function renderStats() {
     if (!ui) return;
-    stats.textContent = '✓ Đã tô: ' + matched.size + ' · ✗ Chưa khớp: ' + missed.size;
+    stats.textContent = '✓ ' + matched.size + ' khớp · ✗ ' + missed.size + ' chưa · bank ' + bankCount;
     dInfo.textContent = 'Bank: ' + bankCount + ' câu';
     bOn.textContent = on ? 'PAINT: ON' : 'PAINT: OFF';
-    bOn.style.color = on ? '#2e7d32' : '#c62828';
     bAutoMode.textContent = 'Tự chạy khi vào luyện tập: ' + (autoStartOn ? 'ON' : 'OFF');
-    bAutoMode.style.color = autoStartOn ? '#2e7d32' : '#c62828';
-    homeSubs.paint.textContent = on ? 'ON' : 'OFF';
-    homeSubs.auto.textContent = autoRunning ? 'đang chạy' : (autoStartOn ? 'tự chạy ON' : 'tắt');
+    homeSubs.auto.textContent = autoRunning ? 'đang chạy' : (autoStartOn ? 'tự chạy' : 'tắt');
     homeSubs.speed.textContent = '×' + SPD.mult;
     homeSubs.data.textContent = bankCount + ' câu';
-    homeSubs.lock.textContent = LOCK.KEY_HASH ? 'đã khoá' : 'chưa đặt';
+    homeSubs.theme.textContent = THEME.splash ? 'intro ON' : 'intro OFF';
     tab.classList.toggle('on', on); tab.classList.toggle('auto', autoOn || autoRunning);
+  }
+  function applyTheme() {
+    if (!ui) return;
+    ui.style.setProperty('--aza-c', THEME.color);
+    marqSpan.textContent = THEME.text || '';
+    marq.style.display = THEME.text ? '' : 'none';
+    COLORS.forEach((c, i) => themeCtl.sw[i].classList.toggle('sel', c[1] === THEME.color));
+    themeCtl.splash.textContent = 'Màn mở đầu: ' + (THEME.splash ? 'ON' : 'OFF');
+    themeCtl.rain.textContent = 'Mưa ký tự: ' + (THEME.rain ? 'ON' : 'OFF');
   }
 
   // ---- điều hướng đi sâu ----
@@ -911,9 +945,68 @@
 
   const toClip = (t, ok) => (navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => setStatus(ok), () => prompt('Copy:', t));
 
-  async function sha256Hex(s) {
-    const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(LOCK.SALT + '|' + s));
-    return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join('');
+  // ---- Màn mở đầu kiểu hacker (hiện đè lên trang khi chạy bookmark MENU) ----
+  let splashEl = null, splashRaf = 0, splashTimer = 0, splashType = 0;
+  function endSplash(openMenu) {
+    if (!splashEl) return;
+    cancelAnimationFrame(splashRaf); clearTimeout(splashTimer); clearInterval(splashType);
+    const el = splashEl; splashEl = null;
+    el.classList.add('out'); setTimeout(() => el.remove(), 380);
+    if (openMenu && ui) ui.classList.add('open');
+  }
+  function startRain(cv) {
+    const ctx = cv.getContext && cv.getContext('2d'); if (!ctx) return;
+    const W = cv.width = window.innerWidth, H = cv.height = window.innerHeight;
+    const fs = 16, cols = Math.ceil(W / fs), drops = Array.from({ length: cols }, () => Math.random() * -30);
+    const chars = '01ABCDEF<>/{}[]#$%&アイウエオカキクケコサシスセソ'.split('');
+    let last = 0;
+    const tick = t => {
+      if (!splashEl) return;
+      splashRaf = requestAnimationFrame(tick);
+      if (t - last < 40) return; last = t;
+      ctx.fillStyle = 'rgba(0,0,0,.12)'; ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = THEME.color; ctx.font = fs + 'px monospace';
+      for (let i = 0; i < cols; i++) {
+        ctx.fillText(chars[(Math.random() * chars.length) | 0], i * fs, drops[i] * fs);
+        if (drops[i] * fs > H && Math.random() > 0.96) drops[i] = 0;
+        drops[i]++;
+      }
+    };
+    splashRaf = requestAnimationFrame(tick);
+  }
+  function showSplash() {
+    if (splashEl) return;
+    const reduce = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    const el = h('div', 'aza-splash');
+    el.style.setProperty('--aza-c', THEME.color);
+    const box = h('div', 'aza-sbox'), log = h('pre', 'aza-slog'), big = h('div', 'aza-sbig'), sub = h('div', 'aza-ssub', '[ chạm để vào ]');
+    big.textContent = THEME.text || ''; big.setAttribute('data-t', THEME.text || '');
+    box.append(log, big, sub);
+    let cv = null;
+    if (THEME.rain && !reduce) { cv = document.createElement('canvas'); el.append(cv); }
+    el.append(box);
+    document.body.appendChild(el); splashEl = el;
+    el.onclick = () => endSplash(true);
+    if (cv) startRain(cv);
+
+    const prac = isPractice();
+    const lines = [
+      '> AZOTA//ASSISTANT v4.8',
+      '> khởi tạo mô-đun ........... [ OK ]',
+      '> ngân hàng đáp án: ' + bankCount + ' câu',
+      '> chế độ luyện tập ........... [ ' + (prac ? 'CÓ' : 'KHÔNG') + ' ]',
+      '> auto-engine ............... [ ' + (autoStartOn ? 'TỰ CHẠY' : 'THỦ CÔNG') + ' ]',
+      '> sẵn sàng.'
+    ];
+    let i = 0;
+    const step = () => {
+      if (i < lines.length) { log.textContent += (i ? '\n' : '') + lines[i++]; return; }
+      clearInterval(splashType);
+      if (THEME.text) big.classList.add('show');
+    };
+    step();
+    splashType = setInterval(step, reduce ? 60 : 230);
+    splashTimer = setTimeout(() => endSplash(true), reduce ? 1200 : 3600);
   }
 
   function buildUI() {
@@ -923,34 +1016,30 @@
     ui.style.top = store.get('apa_top', 40) + '%';
 
     const head = h('div', 'aza-head');
-    bBack = h('button', 'aza-back', '‹'); titleEl = h('div', 'aza-title', 'Azota Assistant');
+    bBack = h('button', 'aza-back', '‹'); titleEl = h('div', 'aza-title', 'AZOTA//ASSISTANT');
     const bClose = h('button', 'aza-close', '✕');
     head.append(bBack, titleEl, bClose);
+    marq = h('div', 'aza-marq'); marqSpan = h('span'); marq.appendChild(marqSpan);
     const stage = h('div', 'aza-stage');
-    body.append(head, stage); ui.append(body, tab);
+    status = h('div', 'aza-foot');
+    body.append(head, marq, stage, status); ui.append(body, tab);
 
     const addPage = (id, title, ...nodes) => { const el = h('div', 'aza-page'); el.append(...nodes); stage.appendChild(el); pagesMap[id] = { el, title }; return el; };
-    const item = (icon, label, id) => {
-      const b = h('button', 'aza-item'), l = h('span', 'aza-il', icon + ' ' + label), s = h('span', 'aza-is'), c = h('span', 'aza-ic', '›');
+    const item = (label, id) => {
+      const b = h('button', 'aza-item'), l = h('span', 'aza-il', '› ' + label), s = h('span', 'aza-is'), c = h('span', 'aza-ic', '›');
       b.append(l, s, c); b.onclick = () => go(id); homeSubs[id] = s; return b;
     };
 
     // ---- Trang chủ ----
-    stats = h('div', 'aza-card'); status = h('div', 'aza-note');
-    addPage('home', 'Azota Assistant', stats, status,
-      item('🎨', 'Tô đáp án', 'paint'), item('🤖', 'Auto', 'auto'), item('⚡', 'Tốc độ', 'speed'),
-      item('📚', 'Dữ liệu', 'data'), item('🔒', 'Khoá', 'lock'));
-
-    // ---- Tô đáp án ----
+    stats = h('div', 'aza-card'); res = h('div', 'aza-res');
     bOn = btn('', () => {
       on = !on; store.set('apa_on', on);
       if (on) scan(); else { marking = true; clearMarks(); marking = false; obsTake(); setResults([]); setStatus('Đã tắt paint.'); }
       renderStats();
     });
-    status2 = h('div', 'aza-note'); res = h('div', 'aza-res');
-    addPage('paint', 'Tô đáp án', bOn,
-      btn('Quét lại', () => { cache.clear(); matched.clear(); missed.clear(); rootEl = null; lastPaintKey = ''; scan(); }),
-      status2, res);
+    addPage('home', 'AZOTA//ASSISTANT', stats,
+      r2(bOn, btn('QUÉT LẠI', () => { cache.clear(); matched.clear(); missed.clear(); rootEl = null; lastPaintKey = ''; scan(); })),
+      res, item('AUTO', 'auto'), item('TỐC ĐỘ', 'speed'), item('DỮ LIỆU', 'data'), item('GIAO DIỆN', 'theme'));
 
     // ---- Auto ----
     bAutoMode = btn('', () => {
@@ -958,23 +1047,21 @@
       if (autoStartOn) { blockedHref = null; restarts = 0; retryAt = 0; }
       renderStats();
     });
-    const bStart = btn('▶ Start', () => {
+    const bStart = btn('▶ START', () => {
       if (autoRunning) return;
       if (!bankCount) { logAuto('Lỗi: Bank trống, không thể chạy'); return; }
       autoOn = true; store.set('apa_auto', true);
       blockedHref = null; restarts = 0; retryAt = 0;
       logAuto('Bắt đầu...'); renderStats();
       autoLoop();
-    });
-    const bStop = btn('■ Stop', () => {
+    }, 'go');
+    const bStop = btn('■ STOP', () => {
       autoStop = true; autoOn = false; store.set('apa_auto', false);
       blockedHref = location.href;   // dừng tay thì không tự chạy lại ở trang này
       logAuto('Đã bấm Dừng'); renderStats();
-    });
-    bStart.style.cssText = 'background:#16a34a;color:#fff;border:0;font-weight:700';
-    bStop.style.cssText = 'background:#dc2626;color:#fff;border:0;font-weight:700';
+    }, 'no');
     autoLog = h('div', 'aza-auto-log', 'Trạng thái: Sẵn sàng');
-    addPage('auto', 'Auto',
+    addPage('auto', 'AUTO',
       h('div', 'aza-note', 'Tự chạy khi vào bài luyện tập, tự thử lại khi mạng chậm, nộp bài ở câu cuối. Dừng khi gặp câu sai.'),
       bAutoMode, r2(bStart, bStop), autoLog);
 
@@ -990,36 +1077,35 @@
       w.append(t, i); speedInputs[key] = i; return w;
     };
     const syncSpd = () => { for (const k in speedInputs) speedInputs[k].value = SPD[k]; };
-    const preset = (name, m) => btn(name + ' ×' + m, () => { SPD.mult = m; syncSpd(); saveSpd(); });
-    addPage('speed', 'Tốc độ',
-      h('div', 'aza-note', 'Hệ số càng lớn càng nhanh (chia các thời gian chờ bên dưới). Chờ mạng không bị chia.'),
-      r2(preset('Chậm', 0.5), preset('Vừa', 1)), r2(preset('Nhanh', 2), preset('Rất nhanh', 3)),
+    const preset = m => btn('×' + m, () => { SPD.mult = m; syncSpd(); saveSpd(); });
+    addPage('speed', 'TỐC ĐỘ',
+      r2(preset(0.5), preset(1), preset(2), preset(3)),
       field('Hệ số tốc độ ×', 'mult', 0.25, 5, 0.25),
-      field('Chờ sau khi chọn đáp án (ms)', 'pick', 100, 3000, 50),
-      field('Chờ giữa các ý Đúng/Sai (ms)', 'tf', 100, 3000, 50),
-      field('Chờ sau khi sang câu (ms)', 'next', 100, 3000, 50),
-      field('Chờ mạng tối đa mỗi bước (giây)', 'net', 4, 60, 1),
-      btn('Về mặc định', () => { Object.assign(SPD, SPD_DEF); syncSpd(); saveSpd(); }),
-      h('div', 'aza-note', 'Đặt quá nhanh thì script có thể bấm trước khi trang kịp cập nhật. Nếu hay lỗi kẹt, giảm hệ số hoặc tăng "chờ mạng".'));
+      field('Sau chọn đáp án (ms)', 'pick', 100, 3000, 50),
+      field('Giữa ý Đúng/Sai (ms)', 'tf', 100, 3000, 50),
+      field('Sau khi sang câu (ms)', 'next', 100, 3000, 50),
+      field('Chờ mạng tối đa (giây)', 'net', 4, 60, 1),
+      btn('VỀ MẶC ĐỊNH', () => { Object.assign(SPD, SPD_DEF); syncSpd(); saveSpd(); }),
+      h('div', 'aza-note', 'Hệ số lớn = nhanh (chia các mốc ms). Chờ mạng không bị chia. Quá nhanh dễ bấm trước khi trang kịp cập nhật.'));
 
     // ---- Dữ liệu ----
     dInfo = h('div', 'aza-card');
-    addPage('data', 'Dữ liệu', dInfo,
-      btn('📥 Trích xuất trang đáp án này', () => {
+    addPage('data', 'DỮ LIỆU', dInfo,
+      btn('📥 TRÍCH XUẤT TRANG ĐÁP ÁN NÀY', () => {
         try {
           const { items } = extractFromReviewDOM();
-          if (!items.length) { setStatus('Không thấy đáp án. Cần mở trang xem đáp án/kết quả (có dòng "Đáp án đúng"). Bấm "Copy văn bản trang" để kiểm tra.'); return; }
+          if (!items.length) { setStatus('Không thấy đáp án. Cần trang xem đáp án (có dòng "Đáp án đúng"). Thử "Copy văn bản trang".'); return; }
           const { fresh, stat } = filterNew(items, BK);
           userBank = userBank.concat(fresh.map(toRaw));
           store.set('apa_bank', userBank);
           bankCount = loadBank(userBank);
           cache.clear(); lastPaintKey = '';
-          setStatus(`Đọc ${items.length} câu · thêm ${stat.added}, trùng ${stat.dup}, gần giống ${stat.near}, xung đột ${stat.conflict}. Tổng ${bankCount}.`);
+          setStatus(`Đọc ${items.length} · thêm ${stat.added}, trùng ${stat.dup}, gần giống ${stat.near}, xung đột ${stat.conflict}. Tổng ${bankCount}.`);
           renderStats();
         } catch (e) { setStatus('Lỗi trích xuất: ' + e.message); }
       }),
-      btn('📄 Copy văn bản trang', () => { const t = domText(document.body); toClip(t, 'Đã copy văn bản trang (' + t.length + ' ký tự).'); }),
-      btn('📋 Dán & nạp từ clipboard', async () => {
+      btn('📄 COPY VĂN BẢN TRANG', () => { const t = domText(document.body); toClip(t, 'Đã copy văn bản trang (' + t.length + ' ký tự).'); }),
+      btn('📋 DÁN & NẠP TỪ CLIPBOARD', async () => {
         try {
           if (!navigator.clipboard || !navigator.clipboard.readText) throw new Error('Trình duyệt chưa cho đọc clipboard.');
           const incoming = parseAny(await navigator.clipboard.readText());
@@ -1033,50 +1119,50 @@
           renderStats();
         } catch (e) { setStatus('Không nạp: ' + e.message); }
       }),
-      r2(btn('Xuất JSON', () => { if (!BK.length) toClip('[]', 'Bank trống.'); else toClip(exportBank(), 'Đã copy ' + BK.length + ' câu.'); }),
-         btn('Tải .json', () => {
-           const text = BK.length ? exportBank() : '[]', a = document.createElement('a');
-           a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
-           a.download = 'azota-bank-' + new Date().toISOString().slice(0, 10) + '.json';
-           document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-           setStatus('Đã tải file.');
-         })),
-      r2(btn('Mẫu', () => toClip('[\n {"type":"mc","q":"Thủ đô VN?","opts":["Huế","Hà Nội","Đà Nẵng","Hải Phòng"],"a":1}\n]', 'Đã copy mẫu.')),
-         btn('Xóa hết', () => { userBank = []; store.set('apa_bank', []); bankCount = loadBank([]); cache.clear(); matched.clear(); missed.clear(); rootEl = null; lastPaintKey = ''; renderStats(); scan(); })),
-      h('div', 'aza-note', 'Kết quả các nút hiện ở dòng trạng thái trên Trang chủ và trang Tô đáp án.'));
+      (() => {
+        const g = h('div', 'aza-grid');
+        g.append(
+          btn('XUẤT JSON', () => { if (!BK.length) toClip('[]', 'Bank trống.'); else toClip(exportBank(), 'Đã copy ' + BK.length + ' câu.'); }),
+          btn('TẢI .JSON', () => {
+            const text = BK.length ? exportBank() : '[]', a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+            a.download = 'azota-bank-' + new Date().toISOString().slice(0, 10) + '.json';
+            document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+            setStatus('Đã tải file.');
+          }),
+          btn('MẪU', () => toClip('[\n {"type":"mc","q":"Thủ đô VN?","opts":["Huế","Hà Nội","Đà Nẵng","Hải Phòng"],"a":1}\n]', 'Đã copy mẫu.')),
+          btn('XÓA HẾT', () => { userBank = []; store.set('apa_bank', []); bankCount = loadBank([]); cache.clear(); matched.clear(); missed.clear(); rootEl = null; lastPaintKey = ''; renderStats(); scan(); }, 'no'));
+        return g;
+      })());
 
-    // ---- Khoá ----
-    const lockState = h('div', 'aza-card');
-    lockState.textContent = LOCK.KEY_HASH
-      ? 'Đã khoá bằng mã băm trong code. Sau khi đóng tab, script ngủ cho tới khi chạy bookmark CHÌA.'
-      : 'Chưa đặt khoá (đang mở sẵn). Tạo mã băm bên dưới rồi dán vào LOCK.KEY_HASH trong code.';
-    const keyIn = h('input', 'aza-in'); keyIn.type = 'text'; keyIn.placeholder = 'Nhập chìa khoá (nên dài, chữ + số)';
-    keyIn.autocomplete = 'off';
-    const hashOut = h('textarea', 'aza-in'); hashOut.rows = 3; hashOut.readOnly = true; hashOut.placeholder = 'Mã băm sẽ hiện ở đây';
-    addPage('lock', 'Khoá',
-      lockState, keyIn,
-      btn('Tạo mã băm (dán vào LOCK.KEY_HASH)', async () => {
-        if (!keyIn.value) { setStatus('Nhập chìa khoá trước.'); return; }
-        try { hashOut.value = await sha256Hex(keyIn.value); toClip(hashOut.value, 'Đã copy mã băm.'); } catch (e) { setStatus('Không băm được: ' + e.message); }
-      }),
-      hashOut,
-      btn('Copy bookmark CHÌA (mở khoá + mở menu)', () => {
-        if (!keyIn.value) { setStatus('Nhập chìa khoá trước.'); return; }
-        toClip(`javascript:(function(){window.dispatchEvent(new CustomEvent('aza-key',{detail:${JSON.stringify(keyIn.value)}}))})();`, 'Đã copy bookmark CHÌA.');
-      }),
-      btn('Copy bookmark MENU (mở/đóng menu)', () => toClip("javascript:(function(){window.dispatchEvent(new CustomEvent('aza-menu'))})();", 'Đã copy bookmark MENU.')),
-      btn('🔒 Khoá ngay', () => lockNow()),
-      h('div', 'aza-note', 'Khoá chỉ là lớp chặn dùng nhầm: code JS luôn đọc được, nên đừng coi nó là bảo mật. Bookmark CHÌA chứa chìa khoá dạng chữ thường, giữ riêng trên máy bạn.'));
+    // ---- Giao diện ----
+    const txtIn = h('input', 'aza-in'); txtIn.type = 'text'; txtIn.maxLength = 60; txtIn.autocomplete = 'off';
+    txtIn.placeholder = 'Dòng chữ hiện trên màn hình...'; txtIn.value = THEME.text;
+    txtIn.oninput = () => { THEME.text = txtIn.value; saveTheme(); };
+    const sw = h('div', 'aza-sw'); themeCtl.sw = [];
+    COLORS.forEach(c => {
+      const b = h('button'); b.title = c[0]; b.style.background = c[1]; b.style.color = c[1];
+      b.onclick = () => { THEME.color = c[1]; saveTheme(); };
+      sw.appendChild(b); themeCtl.sw.push(b);
+    });
+    themeCtl.splash = btn('', () => { THEME.splash = !THEME.splash; saveTheme(); renderStats(); });
+    themeCtl.rain = btn('', () => { THEME.rain = !THEME.rain; saveTheme(); });
+    addPage('theme', 'GIAO DIỆN',
+      h('div', 'aza-note', 'Dòng chữ này hiện to ở màn mở đầu và chạy ngang trên đầu menu.'),
+      txtIn, sw, r2(themeCtl.splash, themeCtl.rain),
+      btn('▶ XEM THỬ MÀN MỞ ĐẦU', () => { ui.classList.remove('open'); showSplash(); }, 'go'),
+      btn('COPY BOOKMARK MỞ MENU', () => toClip("javascript:(function(){window.dispatchEvent(new CustomEvent('aza-menu'))})();", 'Đã copy bookmark MENU.')),
+      h('div', 'aza-note', 'Chạy bookmark: hiện màn mở đầu rồi mở menu; chạy lại để đóng menu.'));
 
     // sự kiện chung
     bBack.onclick = back;
     bClose.onclick = () => ui.classList.remove('open');
     let drag = null;
-    tab.addEventListener('pointerdown', e => { drag = { y: e.clientY, top: ui.getBoundingClientRect().top, moved: false }; tab.setPointerCapture(e.pointerId); });
+    tab.addEventListener('pointerdown', e => { drag = { y: e.clientY, top: ui.getBoundingClientRect().top, moved: false }; if (tab.setPointerCapture) tab.setPointerCapture(e.pointerId); });
     tab.addEventListener('pointermove', e => {
       if (!drag) return;
       if (Math.abs(e.clientY - drag.y) > 6) drag.moved = true;
-      if (drag.moved) ui.style.top = Math.max(0, Math.min(window.innerHeight - 40, drag.top + e.clientY - drag.y)) + 'px';
+      if (drag.moved) ui.style.top = Math.max(0, Math.min(window.innerHeight - 34, drag.top + e.clientY - drag.y)) + 'px';
     });
     tab.addEventListener('pointerup', () => {
       if (drag && !drag.moved) ui.classList.toggle('open');
@@ -1084,7 +1170,7 @@
       drag = null;
     });
     document.body.appendChild(ui);
-    paintNav();
+    paintNav(); applyTheme();
   }
 
   function autoWatch() {
@@ -1110,51 +1196,23 @@
       schedule();
     });
     obs.observe(document.body, { childList: true, subtree: true, characterData: true });
-    onScroll = () => schedule(); onResize = () => schedule();
-    window.addEventListener('scroll', onScroll, { passive: true, capture: true });
-    window.addEventListener('resize', onResize, { passive: true });
+    window.addEventListener('scroll', () => schedule(), { passive: true, capture: true });
+    window.addEventListener('resize', () => schedule(), { passive: true });
     watchId = setInterval(autoWatch, 2000);
 
     renderStats();
     if (on) scan(); else setStatus('Paint tắt.');
-    if (isReviewPage()) setStatus('Trang đáp án: vào Dữ liệu → "Trích xuất trang đáp án này" để nạp bank.');
+    if (isReviewPage()) setStatus('Trang đáp án: vào DỮ LIỆU → Trích xuất để nạp bank.');
     window.__AZA4__ = { parseAny, extractFromReviewDOM, loadBank, filterNew, exportBank, rank, decide, getBK: () => BK };
   }
 
-  // Tắt hẳn: gỡ giao diện, bộ quan sát, bộ đếm; về trạng thái ngủ
-  function stopAll() {
-    if (!started) return;
-    autoStop = true; autoOn = false;
-    clearInterval(watchId); clearTimeout(timer);
-    if (obs) { obs.disconnect(); obs = null; }
-    if (onScroll) window.removeEventListener('scroll', onScroll, { capture: true });
-    if (onResize) window.removeEventListener('resize', onResize);
-    marking = true; try { clearMarks(); } finally { marking = false; }
-    if (ui) ui.remove(); if (styleEl) styleEl.remove();
-    ui = tab = null; stack = ['home'];
-    delete window.__AZA4__;
-    started = false;
-  }
-  function lockNow() {
-    try { sessionStorage.removeItem('aza_unlocked'); } catch (_) {}
-    if (!LOCK.KEY_HASH) { setStatus('Chưa đặt mã băm nên không khoá được. Dán mã băm vào LOCK.KEY_HASH trước.'); return; }
-    stopAll();
-  }
-
-  async function tryUnlock(pass) {
-    if (!LOCK.KEY_HASH) return true;
-    try { return (await sha256Hex(String(pass == null ? '' : pass))) === LOCK.KEY_HASH; } catch (_) { return false; }
-  }
-  const remembered = () => { try { return LOCK.REMEMBER_TAB && sessionStorage.getItem('aza_unlocked') === '1'; } catch (_) { return false; } };
-
-  // Cửa khoá: bookmark CHÌA gửi sự kiện 'aza-key'; bookmark MENU gửi 'aza-menu'
-  window.addEventListener('aza-key', async e => {
-    if (!(await tryUnlock(e.detail))) return;
-    try { if (LOCK.REMEMBER_TAB) sessionStorage.setItem('aza_unlocked', '1'); } catch (_) {}
-    start();
-    if (ui) ui.classList.add('open');
+  // Bookmark MENU: gửi sự kiện 'aza-menu' → hiện màn mở đầu rồi mở menu; chạy lại để đóng
+  window.addEventListener('aza-menu', () => {
+    if (!started || !ui) return;
+    if (splashEl) { endSplash(true); return; }
+    if (ui.classList.contains('open')) { ui.classList.remove('open'); return; }
+    if (THEME.splash) showSplash(); else ui.classList.add('open');
   });
-  window.addEventListener('aza-menu', () => { if (started && ui) ui.classList.toggle('open'); });
 
-  if (!LOCK.KEY_HASH || remembered()) start();
+  start();
 })();
