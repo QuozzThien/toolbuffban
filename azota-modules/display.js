@@ -5,7 +5,7 @@ if(window.__AZA_PUBLIC_DISPLAY__)return;
 const src=document.currentScript?.src;
 if(!src||!document.body)return;
 window.__AZA_PUBLIC_DISPLAY__=true;
-const URL='https://drssuyohwfgwjotunudv.supabase.co';
+const SUPABASE_URL='https://drssuyohwfgwjotunudv.supabase.co';
 const KEY='sb_publishable_8PzmBR-8ph_pNjwN-QrdzA_1kwMs8jd';
 const defaults={enabled:true,title:'VIP TOOL',version:'V4.9',notice:'SYSTEM ONLINE',logoText:'Q',color:'#00ff9c',position:'bl',width:240,fontSize:14,opacity:.95,marqueeSpeed:10,neon:true,rgb:false,matrix:false,glitch:false,marquee:true};
 const host=document.createElement('div');host.style.cssText='position:fixed;z-index:2147483646;pointer-events:none;max-width:90vw';
@@ -29,6 +29,6 @@ function apply(raw){const c={...defaults,...raw};const signature=JSON.stringify(
  const img=$('.logo-img');if(typeof c.logo==='string'&&/^https:\/\//i.test(c.logo)){img.src=c.logo;img.style.display='block';$('.logo').style.display='none'}else{img.removeAttribute('src');img.style.display='none';$('.logo').style.display='grid'}
  clearInterval(matrixId);matrixId=0;canvas.style.display=c.matrix?'block':'none';if(c.matrix&&ctx&&!host.hidden){canvas.width=panel.clientWidth;canvas.height=panel.clientHeight;const drops=Array.from({length:Math.ceil(canvas.width/12)},()=>Math.random()*-20);matrixId=setInterval(()=>{if(document.hidden)return;ctx.fillStyle='rgba(3,13,13,.17)';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.fillStyle=panel.style.color;ctx.font='12px monospace';drops.forEach((y,i)=>{ctx.fillText(Math.random()>.5?'1':'0',i*12,y*12);drops[i]=y*12>canvas.height&&Math.random()>.95?0:y+1})},105)}
 }
-async function refresh(){if(isBusy)return;isBusy=true;try{const r=await fetch(URL+'/rest/v1/display_config?select=config&id=eq.1',{headers:{apikey:KEY,Accept:'application/json'},cache:'no-store'});if(!r.ok)throw Error('Supabase '+r.status);const rows=await r.json();if(!Array.isArray(rows)||!rows[0]?.config)throw Error('Config unavailable');apply(rows[0].config)}catch(e){console.warn('[QUOZZ DISPLAY] Falling back to static config:',e);try{const u=new URL('config.json',src);u.searchParams.set('t',Date.now());const r=await fetch(u,{cache:'no-store'});if(r.ok)apply(await r.json())}catch(err){console.warn('[QUOZZ DISPLAY] No config available:',err)}}finally{isBusy=false}}
+async function refresh(){if(isBusy)return;isBusy=true;try{const r=await fetch(SUPABASE_URL+'/rest/v1/display_config?select=config&id=eq.1',{headers:{apikey:KEY,Accept:'application/json'},cache:'no-store'});if(!r.ok)throw Error('Supabase '+r.status);const rows=await r.json();if(!Array.isArray(rows)||!rows[0]?.config)throw Error('Config unavailable');apply(rows[0].config)}catch(e){console.warn('[QUOZZ DISPLAY] Falling back to static config:',e);try{const u=new URL('config.json',src);u.searchParams.set('t',Date.now());const r=await fetch(u,{cache:'no-store'});if(r.ok)apply(await r.json())}catch(err){console.warn('[QUOZZ DISPLAY] No config available:',err)}}finally{isBusy=false}}
 refresh();setInterval(refresh,60000);
 })();
