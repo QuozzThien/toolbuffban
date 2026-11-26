@@ -1,1 +1,372 @@
-<!doctype html><html lang="vi"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Display config editor</title><style>body{font:16px system-ui;max-width:540px;margin:30px auto;padding:16px;background:#101713;color:#e7f8ed}label,input,textarea,button{display:block;margin:10px 0}input,textarea{width:95%;padding:8px}button{padding:10px}</style><h1>Display config editor</h1><p>Chỉnh cấu hình, sao chép JSON rồi lưu vào config.json bằng tài khoản GitHub có quyền ghi. Trang này không cấp quyền ghi.</p><label>Tiêu đề<input id="title" value="VIP TOOL"></label><label>Phiên bản<input id="version" value="V4.9"></label><label>Thông báo<input id="notice" value="SYSTEM ONLINE"></label><label>Màu<input id="color" type="color" value="#00ff9c"></label><label>Hiện giao diện<input id="enabled" type="checkbox" checked></label><button id="make">Tạo JSON</button><textarea id="out" rows="10" readonly></textarea><button id="copy">Copy JSON</button><script>const el=id=>document.getElementById(id);el('make').onclick=()=>el('out').value=JSON.stringify({title:el('title').value,version:el('version').value,notice:el('notice').value,color:el('color').value,enabled:el('enabled').checked},null,2);el('copy').onclick=async()=>{el('make').click();try{await navigator.clipboard.writeText(el('out').value)}catch(e){el('out').select()}};el('make').click();</script></html>
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>QUOZZ ADMIN V2</title>
+<style>
+*{box-sizing:border-box}
+body{
+background:#030907;
+color:#00ff9c;
+font:14px monospace;
+max-width:650px;
+margin:auto;
+padding:18px
+}
+h1{text-align:center;text-shadow:0 0 12px currentColor}
+.card{
+border:1px solid #00ff9c;
+border-radius:10px;
+padding:15px;
+margin-bottom:15px;
+background:#07130e
+}
+label{display:block;margin:12px 0}
+input:not([type=checkbox]),select,button{
+width:100%;
+padding:11px;
+margin-top:5px;
+background:#020805;
+color:#00ff9c;
+border:1px solid #00ff9c;
+border-radius:6px
+}
+button{font-weight:bold;cursor:pointer}
+button:disabled{opacity:.4}
+input[type=checkbox]{accent-color:#00ff9c}
+#preview{
+min-height:230px;
+position:relative;
+overflow:hidden;
+background:#010503;
+border:1px dashed #275d43
+}
+#panel{
+position:absolute;
+padding:12px;
+border:1px solid currentColor;
+border-radius:8px;
+background:#04100b;
+overflow:hidden
+}
+#logo{max-width:48px;max-height:48px}
+#status{white-space:pre-wrap}
+.rgb{animation:rgb 5s linear infinite}
+@keyframes rgb{
+0%,100%{color:#00ff9c}
+25%{color:#00e5ff}
+50%{color:#ff2bd6}
+75%{color:#ffb000}
+}
+.glitch{animation:glitch 2s infinite}
+@keyframes glitch{
+0%,94%,100%{transform:none}
+95%{transform:translateX(2px)}
+97%{transform:translateX(-2px)}
+}
+.marquee{
+white-space:nowrap;
+overflow:hidden
+}
+.marquee span{
+display:inline-block;
+padding-left:100%;
+animation:marquee 10s linear infinite
+}
+@keyframes marquee{
+to{transform:translateX(-100%)}
+}
+</style>
+</head>
+<body>
+
+<h1>QUOZZ CONTROL CENTER</h1>
+
+<div class="card">
+<label>GitHub Admin Token
+<input id="token" type="password" autocomplete="off"
+placeholder="Nhập Fine-grained Token">
+</label>
+<button id="login">XÁC THỰC ADMIN</button>
+<button id="logout">ĐĂNG XUẤT</button>
+<div id="account">Chưa xác thực</div>
+</div>
+
+<div class="card">
+<h3>LIVE PREVIEW</h3>
+<div id="preview">
+<div id="panel">
+<img id="logo" hidden>
+<div id="pTitle"></div>
+<div id="pVersion"></div>
+<div id="pNotice"><span></span></div>
+</div>
+</div>
+</div>
+
+<div class="card" id="settings">
+<h3>THƯƠNG HIỆU</h3>
+
+<label>Tên thương hiệu
+<input id="title">
+</label>
+
+<label>Phiên bản
+<input id="version">
+</label>
+
+<label>Thông báo
+<input id="notice">
+</label>
+
+<label>Logo HTTPS
+<input id="logoUrl" type="url">
+</label>
+
+<label>Màu chủ đạo
+<input id="color" type="color">
+</label>
+
+<h3>HIỂN THỊ</h3>
+
+<label>Vị trí
+<select id="position">
+<option value="tl">Trên trái</option>
+<option value="tr">Trên phải</option>
+<option value="bl">Dưới trái</option>
+<option value="br">Dưới phải</option>
+</select>
+</label>
+
+<label>Chiều rộng
+<input id="width" type="range" min="100" max="400">
+</label>
+
+<label>Cỡ chữ
+<input id="fontSize" type="range" min="10" max="28">
+</label>
+
+<label>Độ hiển thị
+<input id="opacity" type="range" min="10" max="100">
+</label>
+
+<h3>HIỆU ỨNG</h3>
+
+<label><input id="enabled" type="checkbox"> Hiện giao diện</label>
+<label><input id="neon" type="checkbox"> Neon</label>
+<label><input id="rgb" type="checkbox"> RGB</label>
+<label><input id="matrix" type="checkbox"> Matrix</label>
+<label><input id="glitch" type="checkbox"> Glitch</label>
+<label><input id="marquee" type="checkbox"> Chữ chạy ngang</label>
+
+<button id="reset">KHÔI PHỤC MẶC ĐỊNH</button>
+<button id="save" disabled>CẬP NHẬT TOÀN HỆ THỐNG</button>
+</div>
+
+<div class="card" id="status">Sẵn sàng.</div>
+
+<script>
+'use strict';
+
+const $=id=>document.getElementById(id);
+
+const API='https://api.github.com/repos/QuozzThien/toolbuffban/contents/azota-modules/config.json';
+
+let token='';
+let sha='';
+
+const defaults={
+title:'QUOZZ VIP SYSTEM',
+version:'VIP PREMIUM',
+notice:'WELCOME TO PREMIUM TOOL',
+logo:'',
+color:'#00ff9c',
+position:'bl',
+width:180,
+fontSize:14,
+opacity:1,
+enabled:true,
+neon:true,
+rgb:false,
+matrix:false,
+glitch:false,
+marquee:false
+};
+
+const checks=['enabled','neon','rgb','matrix','glitch','marquee'];
+
+function status(t){
+$('status').textContent=t;
+}
+
+function read(){
+const c={};
+for(const k of ['title','version','notice','color','position']){
+c[k]=$(k).value;
+}
+c.logo=$('logoUrl').value;
+c.width=Number($('width').value);
+c.fontSize=Number($('fontSize').value);
+c.opacity=Number($('opacity').value)/100;
+checks.forEach(k=>c[k]=$(k).checked);
+return c;
+}
+
+function fill(c){
+c={...defaults,...c};
+
+for(const k of ['title','version','notice','color','position','width','fontSize']){
+$(k).value=c[k];
+}
+
+$('logoUrl').value=c.logo;
+$('opacity').value=c.opacity*100;
+checks.forEach(k=>$(k).checked=!!c[k]);
+
+preview();
+}
+
+function preview(){
+const c=read();
+const p=$('panel');
+
+p.hidden=!c.enabled;
+p.style.color=c.color;
+p.style.opacity=c.opacity;
+p.style.width=Math.min(c.width,$('preview').clientWidth-20)+'px';
+p.style.fontSize=c.fontSize+'px';
+
+p.style.top=p.style.bottom=p.style.left=p.style.right='auto';
+p.style[c.position[0]==='t'?'top':'bottom']='10px';
+p.style[c.position[1]==='r'?'right':'left']='10px';
+
+p.style.boxShadow=c.neon?'0 0 15px currentColor':'none';
+p.style.textShadow=c.neon?'0 0 6px currentColor':'none';
+
+p.classList.toggle('rgb',c.rgb);
+
+$('pTitle').textContent=c.title;
+$('pVersion').textContent=c.version;
+$('pNotice').querySelector('span').textContent=c.notice;
+
+$('pTitle').classList.toggle('glitch',c.glitch);
+$('pNotice').classList.toggle('marquee',c.marquee);
+
+$('logo').hidden=!/^https:\/\//i.test(c.logo);
+if(!$('logo').hidden)$('logo').src=c.logo;
+else $('logo').removeAttribute('src');
+}
+
+function headers(){
+return {
+Authorization:'Bearer '+token,
+Accept:'application/vnd.github+json',
+'Content-Type':'application/json'
+};
+}
+
+function decode(s){
+return new TextDecoder().decode(
+Uint8Array.from(atob(s),c=>c.charCodeAt(0))
+);
+}
+
+function encode(s){
+return btoa(Array.from(
+new TextEncoder().encode(s),
+b=>String.fromCharCode(b)
+).join(''));
+}
+
+async function load(){
+const r=await fetch(API+'?ref=main&t='+Date.now(),{
+headers:headers(),
+cache:'no-store'
+});
+
+if(!r.ok)throw Error('GitHub HTTP '+r.status);
+
+const d=await r.json();
+sha=d.sha;
+fill(JSON.parse(decode(d.content)));
+}
+
+$('login').onclick=async()=>{
+token=$('token').value.trim();
+$('token').value='';
+$('save').disabled=true;
+
+try{
+const r=await fetch('https://api.github.com/user',{
+headers:headers()
+});
+
+if(!r.ok)throw Error('Token không hợp lệ');
+
+const u=await r.json();
+
+if(u.login.toLowerCase()!=='quozzthien'){
+throw Error('Không phải tài khoản Admin');
+}
+
+await load();
+
+$('account').textContent='Admin: '+u.login;
+$('save').disabled=false;
+status('Đã xác thực và tải cấu hình.');
+}catch(e){
+token='';
+sha='';
+$('account').textContent='Chưa xác thực';
+status(e.message);
+}
+};
+
+$('logout').onclick=()=>{
+token='';
+sha='';
+$('token').value='';
+$('save').disabled=true;
+$('account').textContent='Chưa xác thực';
+status('Đã đăng xuất.');
+};
+
+$('save').onclick=async()=>{
+if(!token||!sha)return;
+$('save').disabled=true;
+
+try{
+const r=await fetch(API,{
+method:'PUT',
+headers:headers(),
+body:JSON.stringify({
+message:'Update public display configuration',
+content:encode(JSON.stringify(read(),null,2)+'\n'),
+sha:sha,
+branch:'main'
+})
+});
+
+const d=await r.json();
+
+if(!r.ok)throw Error(d.message||r.status);
+
+sha=d.content.sha;
+
+status('CẬP NHẬT THÀNH CÔNG\nCommit: '+d.commit.sha);
+}catch(e){
+status('Lỗi: '+e.message);
+}finally{
+$('save').disabled=!token;
+}
+};
+
+$('reset').onclick=()=>fill(defaults);
+
+$('settings').addEventListener('input',preview);
+
+fill(defaults);
+</script>
+</body>
+</html>
