@@ -922,7 +922,7 @@
     homeSubs.auto.textContent = autoRunning ? 'đang chạy' : (autoStartOn ? 'tự chạy' : 'tắt');
     homeSubs.speed.textContent = '×' + SPD.mult;
     homeSubs.data.textContent = bankCount + ' câu';
-    homeSubs.theme.textContent = THEME.splash ? 'intro ON' : 'intro OFF';
+
     tab.classList.toggle('on', on); tab.classList.toggle('auto', autoOn || autoRunning);
   }
   function applyTheme() {
@@ -1011,7 +1011,7 @@
     };
     step();
     splashType = setInterval(step, reduce ? 60 : 230);
-    splashTimer = setTimeout(() => endSplash(true), reduce ? 1200 : 3600);
+    // Intro stays until user interaction.
   }
 
   async function extractReviewV2(report) {
@@ -1121,7 +1121,7 @@
     });
     addPage('home', 'AZOTA//ASSISTANT', stats,
       r2(bOn, btn('QUÉT LẠI', () => { cache.clear(); matched.clear(); missed.clear(); rootEl = null; lastPaintKey = ''; scan(); })),
-      res, item('AUTO', 'auto'), item('TỐC ĐỘ', 'speed'), item('DỮ LIỆU', 'data'), item('GIAO DIỆN', 'theme'));
+      res, item('AUTO', 'auto'), item('TỐC ĐỘ', 'speed'), item('DỮ LIỆU', 'data'));
 
     // ---- Auto ----
     bAutoMode = btn('', () => {
