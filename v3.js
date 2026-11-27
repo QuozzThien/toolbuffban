@@ -883,15 +883,15 @@
 .aza-auto-log{font-size:11px;margin:4px 0;min-height:14px;font-weight:700}
 .aza-splash{--aza-c:#00ff9c;position:fixed;left:0;top:0;right:0;bottom:0;z-index:2147483647;background:#000;color:var(--aza-c);font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;display:flex;align-items:center;justify-content:center;opacity:1;transition:opacity .35s;overflow:hidden}
 .aza-splash.out{opacity:0}
-.aza-splash canvas{position:absolute;left:0;top:0;width:100%;height:100%;opacity:.55}
-.aza-sbox{position:relative;max-width:92vw;padding:16px 18px;background:rgba(0,0,0,.74);border:1px solid var(--aza-c);box-shadow:0 0 22px var(--aza-c)}
-.aza-slog{margin:0 0 10px;white-space:pre-wrap;min-height:9em;font:inherit;text-shadow:0 0 6px var(--aza-c)}
+.aza-splash canvas{position:absolute;left:0;top:0;width:100%;height:100%;opacity:.75}
+.aza-sbox{position:relative;max-width:92vw;padding:16px 18px;background:rgba(0,0,0,.74);border:1px solid var(--aza-c);border-radius:8px;box-shadow:0 0 22px var(--aza-c)}
+.aza-slog{margin:0 0 10px;white-space:pre-wrap;min-height:9em;font:inherit;line-height:1.8;text-shadow:0 0 6px var(--aza-c)}
 .aza-sbig{position:relative;font-weight:800;font-size:clamp(20px,8vw,40px);letter-spacing:3px;text-align:center;text-transform:uppercase;text-shadow:0 0 12px var(--aza-c);opacity:0;transform:scale(.92);transition:opacity .3s,transform .3s;word-break:break-word}
 .aza-sbig.show{opacity:1;transform:none;animation:azaGlitch 1.1s infinite}
 .aza-sbig::before,.aza-sbig::after{content:attr(data-t);position:absolute;left:0;top:0;width:100%;overflow:hidden}
 .aza-sbig::before{color:#ff2bd6;clip-path:inset(0 0 55% 0);animation:azaG1 1.3s infinite steps(2)}
 .aza-sbig::after{color:#00e5ff;clip-path:inset(55% 0 0 0);animation:azaG2 1.7s infinite steps(2)}
-.aza-ssub{margin-top:10px;text-align:center;opacity:.6;font-size:11px;animation:azaBlink 1.2s steps(1) infinite}
+.aza-ssub{margin-top:10px;text-align:center;opacity:.85;font-size:11px;animation:azaBlink 1.2s steps(1) infinite}
 @keyframes azaBlink{50%{opacity:0}}
 @keyframes azaPulse{50%{box-shadow:0 0 16px var(--aza-c)}}
 @keyframes azaMarq{from{transform:translateX(0)}to{transform:translateX(-100%)}}
